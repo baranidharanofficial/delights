@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0a0908;
+  --foreground: #ece7df;
+  --accent: #deb887;
+  --muted: #8a8378;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-accent: var(--accent);
+  --color-muted: var(--muted);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rise {
+  opacity: 0;
+  animation: rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes glow-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+.glow-pulse {
+  animation: glow-pulse 5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise {
+    animation: none;
+    opacity: 1;
+  }
+  .glow-pulse {
+    animation: none;
+  }
+}
