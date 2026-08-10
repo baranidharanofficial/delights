@@ -38,7 +38,22 @@
       "Bash(cp \"/Users/baranidharan/Desktop/SSa/Personal Apps/delights/src/lib/shop/dates.ts\" .)",
       "Bash(sed -i '' 's|\"../../../../Users/baranidharan/Desktop/SSa/Personal Apps/delights/src/lib/shop/|\"./|g' check.ts)",
       "Bash(cp \"/Users/baranidharan/Desktop/SSa/Personal Apps/delights/src/lib/shop/types.ts\" .)",
-      "Bash(sed -e '/import \"server-only\";/d' -e '/from \".\\\\/orders\";/d' \"/Users/baranidharan/Desktop/SSa/Personal Apps/delights/src/lib/shop/reports.ts\")"
+      "Bash(sed -e '/import \"server-only\";/d' -e '/from \".\\\\/orders\";/d' \"/Users/baranidharan/Desktop/SSa/Personal Apps/delights/src/lib/shop/reports.ts\")",
+      "Bash(echo \"--- exit=$? ---\")",
+      "Bash(firebase projects:addfirebase delights-pos)",
+      "Bash(firebase firestore:databases:create --help)",
+      "Bash(firebase firestore:locations --project delights-pos)",
+      "Bash(gcloud services *)",
+      "Bash(firebase firestore:databases:create '\\(default\\)' --location asia-south1 --project delights-pos)",
+      "Bash(firebase deploy *)",
+      "Bash(gcloud iam *)",
+      "Bash(cp /private/tmp/claude-501/-Users-baranidharan-Desktop-SSa-Personal-Apps-delights/81db99a3-1c3e-4aca-bf36-ff67a338f4aa/scratchpad/readback.mjs ./readback.tmp.mjs)",
+      "Bash(node --env-file=.env.local ./readback.tmp.mjs)",
+      "Bash(curl -s -o /dev/null http://localhost:3000/pos/login)",
+      "Bash(curl -s -H 'Cookie: delights_pos_session=__TRACKED_VAR__' http://localhost:3000/pos/reports)",
+      "Bash(grep -oE '₹[0-9,]+\\\\.[0-9]{2}' /tmp/rep.html)",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(pkill -f \"next-server\")"
     ]
   }
 }

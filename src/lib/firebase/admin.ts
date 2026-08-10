@@ -40,15 +40,33 @@ function initialize(): App {
   });
 }
 
-let firestore: Firestore | undefined;
+/**
+ * Cached on `globalThis`, not in a module variable.
+ *
+ * Next evaluates this module more than once — per route bundle, and again on
+ * every HMR pass. `getFirestore()` hands back the *same* instance each time
+ * (it is cached on the App), but `settings()` may only ever be called once on
+ * it, so a per-module cache means the second evaluation throws "Firestore has
+ * already been initialized". A global key is the only cache that outlives the
+ * module.
+ */
+const FIRESTORE = Symbol.for("delights.firestore");
+
+type GlobalWithFirestore = typeof globalThis & {
+  [FIRESTORE]?: Firestore;
+};
 
 export function getDb(): Firestore {
-  if (firestore) return firestore;
+  const globals = globalThis as GlobalWithFirestore;
 
-  firestore = getFirestore(initialize());
+  const cached = globals[FIRESTORE];
+  if (cached) return cached;
+
+  const firestore = getFirestore(initialize());
   // A field set to `undefined` would otherwise throw on write. Treating it as
   // "leave this field out" is what every call site here actually wants.
   firestore.settings({ ignoreUndefinedProperties: true });
+  globals[FIRESTORE] = firestore;
 
   return firestore;
 }
