@@ -49,6 +49,24 @@ export type OrderLine = {
   lineTotal: number;
 };
 
+/**
+ * Why a sale was cancelled, and what was done about the goods.
+ *
+ * A voided order is never deleted and its receipt number is never reissued — the
+ * gap in the sequence is the evidence that something was cancelled, which is
+ * exactly what makes the day auditable.
+ */
+export type VoidRecord = {
+  atMs: number;
+  by: { email: string; name: string | null };
+  reason: string;
+  /**
+   * Whether the items went back on the shelf. False when the goods left with
+   * the customer anyway — a complaint refunded rather than a misring.
+   */
+  stockRestored: boolean;
+};
+
 export type Order = {
   id: string;
   /** Zero-padded, unique within `businessDate` — displayed as `#0007`. */
@@ -65,7 +83,13 @@ export type Order = {
   total: number;
   method: PaymentMethod;
   cashier: { email: string; name: string | null };
+  /** `null` on a live sale. Present means the order no longer counts. */
+  voided: VoidRecord | null;
 };
+
+export function isVoided(order: Order): boolean {
+  return order.voided !== null;
+}
 
 /** What the terminal sends to the server: ids and counts, never prices. */
 export type OrderRequestLine = {
@@ -186,6 +210,7 @@ export type Production = {
 
 export type DailyReport = {
   businessDate: string;
+  /** Live sales only — voided orders are excluded from every total below. */
   orderCount: number;
   grossSubtotal: number;
   grossTax: number;
@@ -193,4 +218,7 @@ export type DailyReport = {
   byMethod: Record<PaymentMethod, { count: number; total: number }>;
   /** Descending by units sold. */
   topItems: { itemId: string; name: string; quantity: number; total: number }[];
+  /** Reported alongside rather than folded in, so the day still reconciles. */
+  voidedCount: number;
+  voidedTotal: number;
 };

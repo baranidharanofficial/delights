@@ -4,13 +4,14 @@ import { requirePosUser } from "@/lib/auth/session";
 import {
   businessDate,
   formatBusinessDate,
-  formatIstTime,
   isBusinessDate,
   shiftBusinessDate,
 } from "@/lib/shop/dates";
 import { formatMoney } from "@/lib/shop/money";
 import { getDailyReport } from "@/lib/shop/reports";
 import { PAYMENT_METHODS, type DailyReport, type Order } from "@/lib/shop/types";
+
+import OrderList from "./order-list";
 
 import PosHeader from "../header";
 
@@ -102,7 +103,7 @@ function Totals({ report }: { report: DailyReport }) {
         <Tile label="Gross taken" value={formatMoney(report.grossTotal)} />
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {PAYMENT_METHODS.map((method) => (
           <Tile
             key={method}
@@ -110,6 +111,10 @@ function Totals({ report }: { report: DailyReport }) {
             value={formatMoney(report.byMethod[method].total)}
           />
         ))}
+        <Tile
+          label={`Voided · ${report.voidedCount}`}
+          value={formatMoney(report.voidedTotal)}
+        />
       </div>
     </section>
   );
@@ -167,32 +172,7 @@ function TopItems({ report }: { report: DailyReport }) {
 function Orders({ orders }: { orders: Order[] }) {
   return (
     <Panel title="Orders">
-      {orders.length === 0 ? (
-        <p className="px-5 py-10 text-center text-sm text-muted">
-          No orders recorded yet.
-        </p>
-      ) : (
-        <ul className="divide-y divide-white/[0.06] px-5">
-          {orders.map((order) => (
-            <li key={order.id} className="py-3">
-              <div className="flex items-baseline justify-between gap-3 text-sm">
-                <span className="font-medium">#{order.reference}</span>
-                <span className="text-xs text-muted">
-                  {formatIstTime(order.placedAtMs)} · {order.method}
-                </span>
-                <span className="ml-auto font-semibold text-accent tabular-nums">
-                  {formatMoney(order.total)}
-                </span>
-              </div>
-              <p className="mt-1 truncate text-xs text-muted">
-                {order.lines
-                  .map((line) => `${line.quantity} × ${line.name}`)
-                  .join(", ")}
-              </p>
-            </li>
-          ))}
-        </ul>
-      )}
+      <OrderList orders={orders} />
     </Panel>
   );
 }

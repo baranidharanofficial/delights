@@ -20,8 +20,18 @@ export function summarise(date: string, orders: Order[]): DailyReport {
   let grossSubtotal = 0;
   let grossTax = 0;
   let grossTotal = 0;
+  let voidedCount = 0;
+  let voidedTotal = 0;
 
   for (const order of orders) {
+    // Voided sales are counted separately, never folded into the takings. They
+    // still need reporting — "why is the till short" is answered by this number.
+    if (order.voided) {
+      voidedCount += 1;
+      voidedTotal += order.total;
+      continue;
+    }
+
     grossSubtotal += order.subtotal;
     grossTax += order.tax;
     grossTotal += order.total;
@@ -50,12 +60,14 @@ export function summarise(date: string, orders: Order[]): DailyReport {
 
   return {
     businessDate: date,
-    orderCount: orders.length,
+    orderCount: orders.length - voidedCount,
     grossSubtotal,
     grossTax,
     grossTotal,
     byMethod,
     topItems,
+    voidedCount,
+    voidedTotal,
   };
 }
 

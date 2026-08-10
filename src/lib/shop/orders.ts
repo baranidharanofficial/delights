@@ -16,6 +16,7 @@ import {
   type OrderLine,
   type OrderRequestLine,
   type PaymentMethod,
+  type VoidRecord,
 } from "./types";
 
 export type PlaceOrderResult =
@@ -181,6 +182,7 @@ export async function placeOrder(
         total,
         method,
         cashier,
+        voided: null,
       };
 
       transaction.set(counterRef, { seq: sequence }, { merge: true });
@@ -199,6 +201,9 @@ export async function placeOrder(
         total,
         method,
         cashier,
+        // Written explicitly rather than left absent so the field is there to
+        // filter on if voids ever need a query of their own.
+        voided: null,
       });
 
       return { ok: true as const, order };
@@ -212,6 +217,19 @@ export async function placeOrder(
       error: "Could not save the order. Check the connection and try again.",
     };
   }
+}
+
+function readVoid(data: FirebaseFirestore.DocumentData): VoidRecord | null {
+  const voided = data.voided;
+  if (!voided || typeof voided !== "object") return null;
+
+  const at = voided.at;
+  return {
+    atMs: at instanceof Timestamp ? at.toMillis() : 0,
+    by: { email: String(voided.by?.email ?? ""), name: voided.by?.name ?? null },
+    reason: typeof voided.reason === "string" ? voided.reason : "",
+    stockRestored: voided.stockRestored === true,
+  };
 }
 
 function readOrder(doc: DocumentSnapshot): Order | null {
@@ -239,7 +257,98 @@ function readOrder(doc: DocumentSnapshot): Order | null {
       email: String(data.cashier?.email ?? ""),
       name: data.cashier?.name ?? null,
     },
+    voided: readVoid(data),
   };
+}
+
+export type VoidResult =
+  | { ok: true; order: Order }
+  | { ok: false; error: string };
+
+/**
+ * Cancels a sale.
+ *
+ * The order document is kept and flagged rather than deleted, and the day's
+ * receipt sequence is left alone — reissuing #0007 would make two different
+ * sales share a number, and the gap is the point.
+ *
+ * `restoreStock` covers the two different things a void means: a misring, where
+ * the cake is still on the shelf, and a refund, where the customer kept it.
+ */
+export async function voidOrder(
+  orderId: string,
+  reason: string,
+  restoreStock: boolean,
+  actor: { email: string; name: string | null },
+): Promise<VoidResult> {
+  const trimmed = reason.trim();
+  if (trimmed === "") {
+    return { ok: false, error: "Give a reason so the void is explainable." };
+  }
+
+  const db = getDb();
+  const at = new Date();
+  const orderRef = db.collection(COLLECTIONS.orders).doc(orderId);
+
+  try {
+    return await db.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(orderRef);
+      const order = readOrder(snapshot);
+      if (!order) {
+        return { ok: false as const, error: "That order no longer exists." };
+      }
+      if (order.voided) {
+        return { ok: false as const, error: "That order is already voided." };
+      }
+
+      let restored = false;
+      if (restoreStock) {
+        const itemRefs = order.lines.map((line) =>
+          db.collection(COLLECTIONS.menuItems).doc(line.itemId),
+        );
+        const itemSnapshots = await transaction.getAll(...itemRefs);
+
+        for (const [index, itemSnapshot] of itemSnapshots.entries()) {
+          const current = itemSnapshot.data()?.stock;
+          // Only put units back where the item still exists and is counted.
+          // Adding to an untracked item would invent a balance from nothing.
+          if (!itemSnapshot.exists || !Number.isInteger(current)) continue;
+
+          transaction.update(itemSnapshot.ref, {
+            stock: current + order.lines[index].quantity,
+          });
+          restored = true;
+        }
+      }
+
+      const record = {
+        at: Timestamp.fromDate(at),
+        by: actor,
+        reason: trimmed,
+        stockRestored: restored,
+      };
+      transaction.update(orderRef, { voided: record });
+
+      return {
+        ok: true as const,
+        order: {
+          ...order,
+          voided: {
+            atMs: at.getTime(),
+            by: actor,
+            reason: trimmed,
+            stockRestored: restored,
+          },
+        },
+      };
+    });
+  } catch (cause) {
+    console.error("voidOrder failed", cause);
+    return {
+      ok: false,
+      error: "Could not void the order. Check the connection and try again.",
+    };
+  }
 }
 
 /**
