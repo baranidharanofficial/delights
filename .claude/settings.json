@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"console.log\\(require\\('jose/package.json'\\).version\\)\")",
+      "Bash(node -e ' *)",
+      "Bash(node -e \"console.log\\(process.version\\)\")",
+      "Bash(npx tsc *)",
+      "Bash(SESSION_SECRET=build-placeholder GOOGLE_CLIENT_ID=x GOOGLE_CLIENT_SECRET=y npm run build)",
+      "Bash(curl -s -o /dev/null -D - \"http://localhost:3999/pos\")",
+      "Bash(curl -s -o /dev/null -w \"status=%{http_code}\\\\n\" \"http://localhost:3999/pos/login\")",
+      "Bash(curl -s \"http://localhost:3999/pos/login\")",
+      "Bash(curl -s -o /dev/null -D - \"http://localhost:3999/api/auth/google/login\")",
+      "Bash(grep -oE '<form[^>]*>.{0,400}' /private/tmp/claude-501/-Users-baranidharan-Desktop-SSa-Personal-Apps-delights/513977c2-060f-4aa3-b5dc-640100070aab/scratchpad/pos.html)",
+      "Bash(pkill -f \"next start\")",
+      "Bash(pkill -f \"Google Chrome\")",
+      "Bash(rm -f mint.tmp.mjs)",
+      "Bash(gcloud --version)",
+      "Bash(grep -roE '\"\\\\.env\\\\.[a-z.\\\\[\\\\]$\\\\{\\\\}]*\"|\\\\.env\\\\.local|\\\\.env\\\\.production|\\\\.env\\\\.development' node_modules/next/dist/lib/load-env-config.js)",
+      "Bash(grep -oE '\\\\.env\\\\.\\\\$\\\\{[a-zA-Z]+\\\\}\\\\.local|\\\\.env\\\\.local|\\\\.env\\\\.\\\\$\\\\{[a-zA-Z]+\\\\}|`?\\\\.env`?' node_modules/@next/env/dist/index.js)",
+      "Bash(grep -oE 'dotenvFiles[^;]{0,400}' node_modules/@next/env/dist/index.js)",
+      "Bash(grep -c 'misconfigured Google SSO' __TRACKED_VAR__/dev.log)"
+    ]
+  }
+}
