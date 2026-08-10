@@ -18,7 +18,12 @@
       "Bash(grep -roE '\"\\\\.env\\\\.[a-z.\\\\[\\\\]$\\\\{\\\\}]*\"|\\\\.env\\\\.local|\\\\.env\\\\.production|\\\\.env\\\\.development' node_modules/next/dist/lib/load-env-config.js)",
       "Bash(grep -oE '\\\\.env\\\\.\\\\$\\\\{[a-zA-Z]+\\\\}\\\\.local|\\\\.env\\\\.local|\\\\.env\\\\.\\\\$\\\\{[a-zA-Z]+\\\\}|`?\\\\.env`?' node_modules/@next/env/dist/index.js)",
       "Bash(grep -oE 'dotenvFiles[^;]{0,400}' node_modules/@next/env/dist/index.js)",
-      "Bash(grep -c 'misconfigured Google SSO' __TRACKED_VAR__/dev.log)"
+      "Bash(grep -c 'misconfigured Google SSO' __TRACKED_VAR__/dev.log)",
+      "Bash(ssh-add -l)",
+      "Bash(ssh -T -o BatchMode=yes -o ConnectTimeout=10 git@github-personal)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(ssh -T -o BatchMode=yes -o ConnectTimeout=10 git@github.com)",
+      "Bash(git remote *)"
     ]
   }
 }
