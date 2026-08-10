@@ -8,6 +8,8 @@ import { signOut } from "./actions";
 const TABS = [
   { href: "/pos", label: "Terminal" },
   { href: "/pos/menu", label: "Menu" },
+  { href: "/pos/inventory", label: "Inventory" },
+  { href: "/pos/production", label: "Production" },
   { href: "/pos/reports", label: "Reports" },
 ] as const;
 

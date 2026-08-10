@@ -180,8 +180,19 @@ export default function PosTerminal({
                     type="button"
                     onClick={() => adjust(item.id, 1)}
                     disabled={soldOut || atLimit}
-                    className="group relative flex h-full w-full flex-col justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-left transition-all hover:border-accent/40 hover:bg-white/[0.06] focus:border-accent/40 focus:outline-none active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
+                    className="group relative flex h-full w-full flex-col justify-between gap-3 overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] p-4 text-left transition-all hover:border-accent/40 hover:bg-white/[0.06] focus:border-accent/40 focus:outline-none active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
                   >
+                    {item.imageKey && (
+                      // Plain <img>: /api/images needs the session cookie, which
+                      // the next/image optimizer would not send.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={`/api/images/${item.imageKey}`}
+                        alt=""
+                        loading="lazy"
+                        className="-mx-4 -mt-4 h-24 w-[calc(100%+2rem)] object-cover"
+                      />
+                    )}
                     <span className="text-sm leading-5 font-medium">
                       {item.name}
                     </span>

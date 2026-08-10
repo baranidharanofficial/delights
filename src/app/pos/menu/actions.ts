@@ -16,7 +16,7 @@ import {
 } from "@/lib/shop/menu";
 import { parseRupees } from "@/lib/shop/money";
 
-import { EMPTY_FORM_STATE, type MenuFormState } from "./form-state";
+import { EMPTY_FORM_STATE, type FormState } from "../form-state";
 
 function refresh() {
   revalidatePath("/pos/menu");
@@ -80,9 +80,9 @@ function parseItemForm(
 }
 
 export async function saveMenuItem(
-  _previous: MenuFormState,
+  _previous: FormState,
   formData: FormData,
-): Promise<MenuFormState> {
+): Promise<FormState> {
   await requirePosUser();
 
   const categories = await getCategories();
@@ -101,9 +101,9 @@ export async function saveMenuItem(
 }
 
 export async function removeMenuItem(
-  _previous: MenuFormState,
+  _previous: FormState,
   formData: FormData,
-): Promise<MenuFormState> {
+): Promise<FormState> {
   await requirePosUser();
 
   const id = text(formData, "id");
@@ -115,9 +115,9 @@ export async function removeMenuItem(
 }
 
 export async function saveCategory(
-  _previous: MenuFormState,
+  _previous: FormState,
   formData: FormData,
-): Promise<MenuFormState> {
+): Promise<FormState> {
   await requirePosUser();
 
   const name = text(formData, "name");
@@ -136,9 +136,9 @@ export async function saveCategory(
 }
 
 export async function removeCategory(
-  _previous: MenuFormState,
+  _previous: FormState,
   formData: FormData,
-): Promise<MenuFormState> {
+): Promise<FormState> {
   await requirePosUser();
 
   const id = text(formData, "id");

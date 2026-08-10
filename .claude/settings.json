@@ -53,7 +53,27 @@
       "Bash(curl -s -H 'Cookie: delights_pos_session=__TRACKED_VAR__' http://localhost:3000/pos/reports)",
       "Bash(grep -oE '₹[0-9,]+\\\\.[0-9]{2}' /tmp/rep.html)",
       "Bash(pkill -f \"next dev\")",
-      "Bash(pkill -f \"next-server\")"
+      "Bash(pkill -f \"next-server\")",
+      "Bash(echo \"tsc=$?\")",
+      "Bash(echo \"eslint=$?\")",
+      "Bash(curl -s -X POST http://localhost:3000/api/dev-check)",
+      "Bash(curl -s -X POST http://localhost:3000/api/dev-check -o /dev/null -w \"second call http=%{http_code}\\\\n\")",
+      "Bash(gcloud billing *)",
+      "Bash(echo \"---exit=$?---\")",
+      "Bash(gcloud storage *)",
+      "Bash(gcloud auth *)",
+      "Bash(firebase login:list)",
+      "Bash(node -p \"require\\('./node_modules/@google-cloud/storage/package.json'\\).version\")",
+      "Bash(echo \"@google-cloud/storage present: $\\(node -p \"require\\('./node_modules/@google-cloud/storage/package.json'\\).version\"\\)\")",
+      "Bash(curl -s -o /dev/null -w \"  no session      -> %{http_code}\\\\n\" http://localhost:3000/api/images/menu/x/abc.jpg)",
+      "Bash(curl -s -o /dev/null -w '  bad key         -> %{http_code}\\\\n' -H 'Cookie: delights_pos_session=__TRACKED_VAR__' http://localhost:3000/api/images/secrets/x/abc.jpg)",
+      "Bash(curl -s -o /dev/null -w '  traversal       -> %{http_code}\\\\n' -H 'Cookie: delights_pos_session=__TRACKED_VAR__' http://localhost:3000/api/images/menu/..%2f..%2fetc/passwd)",
+      "Bash(curl -s -o /dev/null -w '  well-formed key -> %{http_code}\\\\n' -H 'Cookie: delights_pos_session=__TRACKED_VAR__' http://localhost:3000/api/images/menu/cake-truffle/0f9a1b2c-3d4e-5f60-7a8b-9c0d1e2f3a4b.jpg)",
+      "Bash(rm -rf src/app/api/dev-check)",
+      "Bash(grep -E \"✓ Comp|/api/images|/pos$\")",
+      "Bash(rm -rf .next/dev)",
+      "Bash(curl -s -D /tmp/h.txt -o /tmp/img.bin -H 'Cookie: delights_pos_session=__TRACKED_VAR__' http://localhost:3000/api/images/__TRACKED_VAR__)",
+      "Bash(curl -s -X DELETE http://localhost:3000/api/dev-check)"
     ]
   }
 }

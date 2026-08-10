@@ -41,6 +41,16 @@ function initialize(): App {
 }
 
 /**
+ * The initialized Admin app, for SDKs other than Firestore.
+ *
+ * Safe to call repeatedly — `initialize()` returns the existing app rather than
+ * creating a second one.
+ */
+export function getApp(): App {
+  return initialize();
+}
+
+/**
  * Cached on `globalThis`, not in a module variable.
  *
  * Next evaluates this module more than once — per route bundle, and again on
@@ -77,4 +87,12 @@ export const COLLECTIONS = {
   orders: "orders",
   /** One doc per business date, holding that day's receipt-number sequence. */
   counters: "counters",
+  /** Raw materials — flour, butter, cups. */
+  materials: "materials",
+  /** Append-only ledger explaining every change to a material's stock. */
+  materialMovements: "materialMovements",
+  /** One doc per menu item, keyed by that item's id. */
+  recipes: "recipes",
+  /** Completed bakes: materials out, finished units in. */
+  productions: "productions",
 } as const;

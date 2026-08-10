@@ -56,6 +56,7 @@ function readMenuItem(doc: DocumentSnapshot): MenuItem | null {
         ? data.stock
         : null,
     sortOrder: typeof data.sortOrder === "number" ? data.sortOrder : 0,
+    imageKey: typeof data.imageKey === "string" ? data.imageKey : null,
   };
 }
 

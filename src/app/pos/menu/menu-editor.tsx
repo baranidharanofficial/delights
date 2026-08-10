@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
 
 import { toRupeeInput } from "@/lib/shop/money";
 import type { Category, MenuItem } from "@/lib/shop/types";
@@ -12,52 +11,9 @@ import {
   saveCategory,
   saveMenuItem,
 } from "./actions";
-import { EMPTY_FORM_STATE } from "./form-state";
-
-const FIELD =
-  "rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-sm placeholder:text-muted/60 focus:border-accent/40 focus:outline-none";
-
-function SubmitButton({
-  children,
-  variant = "quiet",
-  label,
-}: {
-  children: React.ReactNode;
-  variant?: "quiet" | "primary" | "danger";
-  label?: string;
-}) {
-  const { pending } = useFormStatus();
-  const styles = {
-    quiet: "border-white/10 text-muted hover:border-white/20 hover:text-foreground",
-    primary: "border-accent/40 bg-accent/15 text-accent hover:bg-accent/25",
-    danger: "border-red-500/30 text-red-300/80 hover:border-red-500/60 hover:text-red-300",
-  }[variant];
-
-  // Fixed width so Save/Add/✕ occupy identical slots and the column headers
-  // above them stay aligned with the fields below.
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      aria-label={label}
-      className={`w-14 shrink-0 rounded-lg border py-1.5 text-center text-xs font-medium transition-colors disabled:pointer-events-none disabled:opacity-40 ${styles}`}
-    >
-      {pending ? "…" : children}
-    </button>
-  );
-}
-
-function Alert({ message }: { message: string | null }) {
-  if (!message) return null;
-  return (
-    <p
-      role="alert"
-      className="mt-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300"
-    >
-      {message}
-    </p>
-  );
-}
+import { EMPTY_FORM_STATE } from "../form-state";
+import { Alert, ButtonSpacer, FIELD, SubmitButton } from "../form-ui";
+import ImageField from "../image-field";
 
 // --- Categories -------------------------------------------------------------
 
@@ -201,6 +157,15 @@ function ItemRow({
   return (
     <li className="border-t border-white/[0.06] py-2">
       <div className="flex items-center gap-2">
+        {/* Outside the save form on purpose — a file input inside it would be
+            posted along with every ordinary field edit. */}
+        <ImageField
+          target="menuItems"
+          id={item.id}
+          imageKey={item.imageKey}
+          label={item.name}
+          size={36}
+        />
         <form action={save} className="flex min-w-0 flex-1 items-center gap-2">
           <input type="hidden" name="id" value={item.id} />
           <FieldGrid>
@@ -229,15 +194,21 @@ function NewItemForm({ categories }: { categories: Category[] }) {
   return (
     <>
       <form action={action} className="flex items-center gap-2">
+        {/* A picture needs a record to hang off, so it is added after saving. */}
+        <span
+          aria-hidden
+          title="Save the item first, then add a picture"
+          className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-dashed border-white/10 text-[0.6rem] text-muted/40"
+        >
+          ＋
+        </span>
         <FieldGrid>
           <ItemFields categories={categories} />
         </FieldGrid>
         <SubmitButton variant="primary">Add</SubmitButton>
         {/* Keeps the add row's fields aligned with the rows above, which carry a
             delete button in this slot. */}
-        <span aria-hidden className="invisible w-14 shrink-0 py-1.5 text-xs">
-          ✕
-        </span>
+        <ButtonSpacer />
       </form>
       <Alert message={state.error} />
     </>
@@ -284,6 +255,7 @@ export default function MenuEditor({
             {/* Mirrors a row's flex layout — grid, then the two buttons as
                 invisible spacers — so the labels stay over their columns. */}
             <div className="mt-3 flex items-center gap-2 text-[0.65rem] tracking-wider text-muted/70 uppercase">
+              <span aria-hidden className="w-9 shrink-0" />
               <FieldGrid>
                 <span className="col-span-2">Name</span>
                 <span className="text-right">Price</span>
@@ -292,12 +264,8 @@ export default function MenuEditor({
                 <span className="text-right">Sort</span>
                 <span className="text-center">On</span>
               </FieldGrid>
-              <span aria-hidden className="invisible w-14 shrink-0 py-1.5 text-xs">
-                Save
-              </span>
-              <span aria-hidden className="invisible w-14 shrink-0 py-1.5 text-xs">
-                ✕
-              </span>
+              <ButtonSpacer />
+              <ButtonSpacer />
             </div>
 
             <ul className="mt-1">

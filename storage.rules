@@ -1,0 +1,14 @@
+rules_version = '2';
+
+// Uploads and reads both go through the Next.js server using the Admin SDK,
+// which bypasses these rules entirely. Images are served by /api/images, which
+// checks the POS session first. No browser ever talks to this bucket directly.
+//
+// Deploy with: firebase deploy --only storage
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
