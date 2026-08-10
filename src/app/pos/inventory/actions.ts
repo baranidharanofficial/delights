@@ -14,6 +14,7 @@ import {
   updateMaterial,
   type Actor,
 } from "@/lib/shop/materials";
+import { updateMenuItem } from "@/lib/shop/menu";
 import { parseRupees } from "@/lib/shop/money";
 import { isUnit, parseQuantity, type Unit } from "@/lib/shop/units";
 
@@ -44,6 +45,43 @@ async function actor(): Promise<Actor> {
 async function unitOf(materialId: string): Promise<Unit | null> {
   const materials = await getMaterials();
   return materials.find((material) => material.id === materialId)?.unit ?? null;
+}
+
+/**
+ * Sets a menu item's finished-goods count.
+ *
+ * Blank means "stop counting this one", which is different from zero ("counted,
+ * and none left") — an untracked item stays sellable, a zero one does not.
+ *
+ * This is the only place a finished balance is set by hand. Everywhere else it
+ * moves on its own: sales take units out, bakes put them in, voids put them back.
+ */
+export async function setFinishedStock(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  await requirePosUser();
+
+  const id = text(formData, "id");
+  if (id === "") return { error: "Nothing to update." };
+
+  const raw = text(formData, "stock");
+  let stock: number | null = null;
+  if (raw !== "") {
+    const parsed = Number(raw);
+    if (!Number.isInteger(parsed) || parsed < 0) {
+      return { error: "Count must be a whole number, or blank to stop counting." };
+    }
+    stock = parsed;
+  }
+
+  await updateMenuItem(id, { stock });
+
+  revalidatePath("/pos/inventory");
+  // The terminal greys out sold-out items, so it reads this figure too.
+  revalidatePath("/pos");
+  revalidatePath("/pos/production");
+  return EMPTY_FORM_STATE;
 }
 
 export async function saveMaterial(

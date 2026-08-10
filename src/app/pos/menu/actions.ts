@@ -22,6 +22,8 @@ function refresh() {
   revalidatePath("/pos/menu");
   // The terminal serves the same menu, so it goes stale on every edit here.
   revalidatePath("/pos");
+  // Inventory lists these items to show their counts.
+  revalidatePath("/pos/inventory");
 }
 
 function text(formData: FormData, field: string): string {
@@ -29,22 +31,13 @@ function text(formData: FormData, field: string): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-/**
- * Blank means "do not track stock for this item", which is different from zero
- * ("tracked, and none left"). Conflating the two would silently make every
- * untracked item sold out.
- */
-function parseStock(raw: string): number | null | undefined {
-  if (raw === "") return null;
-  const parsed = Number(raw);
-  if (!Number.isInteger(parsed) || parsed < 0) return undefined;
-  return parsed;
-}
+/** Everything the menu owns. Stock is deliberately absent — see `saveMenuItem`. */
+type MenuFields = Omit<MenuItemInput, "stock">;
 
 function parseItemForm(
   formData: FormData,
   knownCategoryIds: Set<string>,
-): { input: MenuItemInput } | { error: string } {
+): { input: MenuFields } | { error: string } {
   const name = text(formData, "name");
   if (name === "") return { error: "Name is required." };
 
@@ -58,11 +51,6 @@ function parseItemForm(
     return { error: "Pick a category that still exists." };
   }
 
-  const stock = parseStock(text(formData, "stock"));
-  if (stock === undefined) {
-    return { error: "Stock must be a whole number, or blank to stop tracking." };
-  }
-
   const sortOrderRaw = text(formData, "sortOrder");
   const sortOrder = sortOrderRaw === "" ? 0 : Number(sortOrderRaw);
   if (!Number.isFinite(sortOrder)) return { error: "Sort order must be a number." };
@@ -73,7 +61,6 @@ function parseItemForm(
       price,
       categoryId,
       available: formData.get("available") !== null,
-      stock,
       sortOrder,
     },
   };
@@ -93,8 +80,15 @@ export async function saveMenuItem(
   if ("error" in parsed) return parsed;
 
   const id = text(formData, "id");
-  if (id === "") await createMenuItem(parsed.input);
-  else await updateMenuItem(id, parsed.input);
+  if (id === "") {
+    // New items start untracked. Counting one begins on the inventory screen,
+    // which is the only place that owns a stock figure.
+    await createMenuItem({ ...parsed.input, stock: null });
+  } else {
+    // A partial update, so the balance is left exactly as it was. Sales,
+    // production and voids move it; this form must never overwrite it.
+    await updateMenuItem(id, parsed.input);
+  }
 
   refresh();
   return EMPTY_FORM_STATE;

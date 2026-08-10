@@ -70,10 +70,10 @@ function NewCategoryForm({ nextSortOrder }: { nextSortOrder: number }) {
 
 // --- Items ------------------------------------------------------------------
 
-/** The seven aligned field columns shared by the header, each row and the add form. */
+/** The six aligned field columns shared by the header, each row and the add form. */
 function FieldGrid({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid min-w-0 flex-1 grid-cols-[repeat(7,minmax(0,1fr))] items-center gap-2">
+    <div className="grid min-w-0 flex-1 grid-cols-[repeat(6,minmax(0,1fr))] items-center gap-2">
       {children}
     </div>
   );
@@ -115,15 +115,6 @@ function ItemFields({
           </option>
         ))}
       </select>
-      <input
-        name="stock"
-        defaultValue={item?.stock ?? ""}
-        placeholder="—"
-        inputMode="numeric"
-        aria-label="Stock on hand, blank to stop tracking"
-        title="Blank means this item is not stock-tracked"
-        className={`${FIELD} min-w-0 text-right tabular-nums`}
-      />
       <input
         name="sortOrder"
         defaultValue={item?.sortOrder ?? 0}
@@ -260,7 +251,6 @@ export default function MenuEditor({
                 <span className="col-span-2">Name</span>
                 <span className="text-right">Price</span>
                 <span>Category</span>
-                <span className="text-right">Stock</span>
                 <span className="text-right">Sort</span>
                 <span className="text-center">On</span>
               </FieldGrid>

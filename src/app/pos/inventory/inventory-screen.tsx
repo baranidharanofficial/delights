@@ -18,12 +18,20 @@ import {
   isLowStock,
   type Material,
   type MaterialMovement,
+  type MenuItem,
 } from "@/lib/shop/types";
 
 import { EMPTY_FORM_STATE } from "../form-state";
 import { Alert, FIELD, SubmitButton } from "../form-ui";
 import ImageField, { imageSrc } from "../image-field";
-import { count, receive, removeMaterial, saveMaterial, waste } from "./actions";
+import {
+  count,
+  receive,
+  removeMaterial,
+  saveMaterial,
+  setFinishedStock,
+  waste,
+} from "./actions";
 
 /**
  * Amount plus the unit it was typed in.
@@ -327,6 +335,100 @@ function NewMaterialForm({ nextSortOrder }: { nextSortOrder: number }) {
   );
 }
 
+// --- Finished goods ---------------------------------------------------------
+
+function FinishedGoodsRow({ item }: { item: MenuItem }) {
+  const [state, submit] = useActionState(setFinishedStock, EMPTY_FORM_STATE);
+  const untracked = item.stock === null;
+
+  return (
+    <li className="border-t border-white/[0.06] py-2">
+      <form action={submit} className="flex items-center gap-3">
+        <input type="hidden" name="id" value={item.id} />
+        {item.imageKey ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={imageSrc(item.imageKey)}
+            alt=""
+            width={28}
+            height={28}
+            className="size-7 shrink-0 rounded-md object-cover"
+          />
+        ) : (
+          <span aria-hidden className="size-7 shrink-0" />
+        )}
+
+        <span className="min-w-0 flex-1 truncate text-sm">{item.name}</span>
+
+        <span className="w-24 shrink-0 text-right">
+          {untracked ? (
+            <span className="text-[0.65rem] text-muted/50 uppercase">
+              Not counted
+            </span>
+          ) : item.stock === 0 ? (
+            <span className="rounded-full border border-red-500/40 bg-red-500/10 px-2 py-0.5 text-[0.65rem] font-medium text-red-300">
+              Sold out
+            </span>
+          ) : (
+            <span className="text-[0.65rem] text-muted/60 uppercase">
+              In stock
+            </span>
+          )}
+        </span>
+
+        <input
+          name="stock"
+          defaultValue={item.stock ?? ""}
+          placeholder="—"
+          inputMode="numeric"
+          aria-label={`Count of ${item.name}, blank to stop counting`}
+          className={`${FIELD} w-20 shrink-0 text-right tabular-nums`}
+        />
+        <SubmitButton>Set</SubmitButton>
+      </form>
+      <Alert message={state.error} />
+    </li>
+  );
+}
+
+function FinishedGoods({ items }: { items: MenuItem[] }) {
+  const counted = items.filter((item) => item.stock !== null);
+  const soldOut = counted.filter((item) => item.stock === 0).length;
+
+  return (
+    <section
+      aria-label="Finished goods"
+      className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4"
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-sm font-semibold tracking-wide">Finished goods</h2>
+        <p className="text-xs text-muted">
+          {counted.length} of {items.length} counted
+          {soldOut > 0 && ` · ${soldOut} sold out`}
+        </p>
+      </div>
+
+      {items.length === 0 ? (
+        <p className="py-8 text-center text-sm text-muted">
+          Nothing on the menu yet.
+        </p>
+      ) : (
+        <ul className="mt-2">
+          {items.map((item) => (
+            <FinishedGoodsRow key={item.id} item={item} />
+          ))}
+        </ul>
+      )}
+
+      <p className="mt-3 border-t border-white/10 pt-3 text-[0.7rem] text-muted/70">
+        Sales take units out, bakes put them in, voids put them back. Set a count
+        here only to correct it or to start counting an item. Leave it blank to
+        stop counting — an uncounted item never reads as sold out.
+      </p>
+    </section>
+  );
+}
+
 function Tile({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
@@ -380,9 +482,11 @@ function Ledger({ movements }: { movements: MaterialMovement[] }) {
 }
 
 export default function InventoryScreen({
+  items,
   materials,
   movements,
 }: {
+  items: MenuItem[];
   materials: Material[];
   movements: MaterialMovement[];
 }) {
@@ -393,14 +497,21 @@ export default function InventoryScreen({
   const lowCount = materials.filter(isLowStock).length;
   const nextSortOrder =
     materials.reduce((max, material) => Math.max(max, material.sortOrder), 0) + 10;
+  const countedItems = items.filter((item) => item.stock !== null).length;
 
   return (
     <div className="flex flex-col gap-6 px-4 pb-8 sm:px-6">
-      <section aria-label="Inventory totals" className="grid grid-cols-3 gap-3">
+      <section
+        aria-label="Inventory totals"
+        className="grid grid-cols-2 gap-3 sm:grid-cols-4"
+      >
+        <Tile label="Finished goods" value={String(countedItems)} />
         <Tile label="Materials" value={String(materials.length)} />
-        <Tile label="Stock value" value={formatMoney(totalValue)} />
+        <Tile label="Material value" value={formatMoney(totalValue)} />
         <Tile label="Low stock" value={String(lowCount)} />
       </section>
+
+      <FinishedGoods items={items} />
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <section

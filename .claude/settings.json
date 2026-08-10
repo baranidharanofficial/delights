@@ -75,7 +75,9 @@
       "Bash(curl -s -D /tmp/h.txt -o /tmp/img.bin -H 'Cookie: delights_pos_session=__TRACKED_VAR__' http://localhost:3000/api/images/__TRACKED_VAR__)",
       "Bash(curl -s -X DELETE http://localhost:3000/api/dev-check)",
       "Bash(grep -n \"cashier,$\" src/lib/shop/orders.ts)",
-      "Bash(curl -s -o /tmp/rep.html -w '%{http_code}' -H 'Cookie: delights_pos_session=__TRACKED_VAR__' http://localhost:3000/pos/reports)"
+      "Bash(curl -s -o /tmp/rep.html -w '%{http_code}' -H 'Cookie: delights_pos_session=__TRACKED_VAR__' http://localhost:3000/pos/reports)",
+      "Bash(curl -s -H 'Cookie: delights_pos_session=__TRACKED_VAR__' http://localhost:3000/pos/menu)",
+      "Bash(curl -s -H 'Cookie: delights_pos_session=__TRACKED_VAR__' http://localhost:3000/pos/inventory)"
     ]
   }
 }
