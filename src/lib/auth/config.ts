@@ -30,7 +30,12 @@ export const CALLBACK_PATH = "/api/auth/google/callback";
 
 export const IS_PROD = process.env.NODE_ENV === "production";
 
-export type LoginError = "forbidden" | "expired" | "denied" | "failed";
+export type LoginError =
+  | "forbidden"
+  | "expired"
+  | "denied"
+  | "misconfigured"
+  | "failed";
 
 export function requireEnv(name: string): string {
   const value = process.env[name];
@@ -50,10 +55,27 @@ export function isAllowedEmail(email: unknown): email is string {
 }
 
 /**
- * Absolute redirect URI handed to Google. Must match a "Authorised redirect
- * URI" on the OAuth client exactly, so allow an explicit override for
- * deployments sitting behind a proxy that rewrites the host.
+ * Absolute redirect URI handed to Google. Must match an "Authorised redirect
+ * URI" on the OAuth client *exactly*, which makes the origin the fragile part:
+ *
+ * 1. `APP_ORIGIN` wins — for proxies that rewrite Host, or to pin a custom domain.
+ * 2. On Vercel production, prefer the stable project domain. Every deployment
+ *    also gets a unique `*-<hash>.vercel.app` URL, and reaching the app through
+ *    one of those would otherwise derive an unregistered redirect URI.
+ * 3. Otherwise trust the request (localhost, self-hosted, preview deploys).
  */
 export function callbackUrl(requestOrigin: string): string {
-  return new URL(CALLBACK_PATH, process.env.APP_ORIGIN ?? requestOrigin).href;
+  const origin = resolveOrigin(requestOrigin);
+  return new URL(CALLBACK_PATH, origin).href;
+}
+
+function resolveOrigin(requestOrigin: string): string {
+  if (process.env.APP_ORIGIN) return process.env.APP_ORIGIN;
+
+  const productionDomain = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  if (process.env.VERCEL_ENV === "production" && productionDomain) {
+    return `https://${productionDomain}`;
+  }
+
+  return requestOrigin;
 }

@@ -28,8 +28,10 @@ export async function GET(request: NextRequest) {
     requireEnv("SESSION_SECRET");
   } catch (error) {
     console.error("[pos-auth] misconfigured Google SSO", error);
+    // Distinct from `failed` so a missing env var on a fresh deployment is
+    // obvious from the UI alone, without digging through server logs.
     return NextResponse.redirect(
-      new URL(`${LOGIN_PATH}?error=failed`, request.nextUrl),
+      new URL(`${LOGIN_PATH}?error=misconfigured`, request.nextUrl),
     );
   }
 

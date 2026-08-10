@@ -13,6 +13,8 @@ const ERROR_MESSAGES: Record<LoginError, string> = {
   forbidden: "That Google account isn't authorised for the POS.",
   expired: "That sign-in attempt expired. Please try again.",
   denied: "Sign-in was cancelled.",
+  misconfigured:
+    "Google sign-in isn't configured on this server. Check the GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and SESSION_SECRET environment variables.",
   failed: "Something went wrong signing you in. Please try again.",
 };
 
