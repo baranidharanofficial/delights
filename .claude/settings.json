@@ -23,7 +23,22 @@
       "Bash(ssh -T -o BatchMode=yes -o ConnectTimeout=10 git@github-personal)",
       "Bash(echo \"exit=$?\")",
       "Bash(ssh -T -o BatchMode=yes -o ConnectTimeout=10 git@github.com)",
-      "Bash(git remote *)"
+      "Bash(git remote *)",
+      "Bash(npm view *)",
+      "Bash(timeout 30 firebase projects:list)",
+      "Bash(firebase projects:list)",
+      "Bash(node -e \"console.log\\(require\\('firebase-admin/package.json'\\).version\\)\")",
+      "Bash(npm audit *)",
+      "Bash(node -e \"let s='';process.stdin.on\\('data',d=>s+=d\\).on\\('end',\\(\\)=>{const v=JSON.parse\\(s\\).metadata.vulnerabilities;console.log\\('vulns:',JSON.stringify\\(v\\)\\)}\\)\")",
+      "Bash(echo \"tsc exit=$?\")",
+      "Bash(npx eslint *)",
+      "Bash(echo \"eslint exit=$?\")",
+      "Bash(node check.ts)",
+      "Bash(cp \"/Users/baranidharan/Desktop/SSa/Personal Apps/delights/src/lib/shop/money.ts\" .)",
+      "Bash(cp \"/Users/baranidharan/Desktop/SSa/Personal Apps/delights/src/lib/shop/dates.ts\" .)",
+      "Bash(sed -i '' 's|\"../../../../Users/baranidharan/Desktop/SSa/Personal Apps/delights/src/lib/shop/|\"./|g' check.ts)",
+      "Bash(cp \"/Users/baranidharan/Desktop/SSa/Personal Apps/delights/src/lib/shop/types.ts\" .)",
+      "Bash(sed -e '/import \"server-only\";/d' -e '/from \".\\\\/orders\";/d' \"/Users/baranidharan/Desktop/SSa/Personal Apps/delights/src/lib/shop/reports.ts\")"
     ]
   }
 }

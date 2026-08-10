@@ -6,9 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed": "node --env-file=.env.local scripts/seed.mjs"
   },
   "dependencies": {
+    "firebase-admin": "^14.2.0",
     "jose": "^6.2.8",
     "next": "16.2.11",
     "react": "19.2.4",

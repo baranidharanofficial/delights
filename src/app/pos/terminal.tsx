@@ -1,59 +1,67 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 
+import { formatMoney, TAX_LABEL, taxOn } from "@/lib/shop/money";
 import {
-  CATALOG,
-  CATALOG_BY_ID,
-  CATEGORIES,
-  TAX_LABEL,
-  formatMoney,
-  taxOn,
-  type CatalogItem,
+  PAYMENT_METHODS,
   type Category,
-} from "./catalog";
+  type MenuItem,
+  type Order,
+  type PaymentMethod,
+} from "@/lib/shop/types";
 
-const PAYMENT_METHODS = ["Cash", "Card", "UPI"] as const;
-type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+import { checkout } from "./actions";
 
-type CartLine = { item: CatalogItem; quantity: number };
-
-type CompletedOrder = {
-  reference: string;
-  lines: CartLine[];
-  subtotal: number;
-  tax: number;
-  total: number;
-  method: PaymentMethod;
-};
+type CartLine = { item: MenuItem; quantity: number };
 
 /** Insertion-ordered map of item id → quantity. */
 type Quantities = Record<string, number>;
 
-export default function PosTerminal() {
+/** Units at which the terminal starts warning the cashier. */
+const LOW_STOCK = 5;
+
+function sellableLimit(item: MenuItem): number {
+  if (!item.available) return 0;
+  return item.stock ?? Number.POSITIVE_INFINITY;
+}
+
+export default function PosTerminal({
+  categories,
+  items,
+}: {
+  categories: Category[];
+  items: MenuItem[];
+}) {
   const [quantities, setQuantities] = useState<Quantities>({});
-  const [category, setCategory] = useState<Category | "All">("All");
+  const [categoryId, setCategoryId] = useState<string | "all">("all");
   const [query, setQuery] = useState("");
   const [method, setMethod] = useState<PaymentMethod>("Cash");
-  const [orderNumber, setOrderNumber] = useState(1);
-  const [completed, setCompleted] = useState<CompletedOrder | null>(null);
+  const [completed, setCompleted] = useState<Order | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isCharging, startCharging] = useTransition();
+
+  const itemsById = useMemo(
+    () => new Map(items.map((item) => [item.id, item])),
+    [items],
+  );
 
   const visibleItems = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return CATALOG.filter(
+    return items.filter(
       (item) =>
-        (category === "All" || item.category === category) &&
+        (categoryId === "all" || item.categoryId === categoryId) &&
         (needle === "" || item.name.toLowerCase().includes(needle)),
     );
-  }, [category, query]);
+  }, [categoryId, items, query]);
 
   const lines = useMemo<CartLine[]>(
     () =>
       Object.entries(quantities).flatMap(([id, quantity]) => {
-        const item = CATALOG_BY_ID.get(id);
+        const item = itemsById.get(id);
         return item && quantity > 0 ? [{ item, quantity }] : [];
       }),
-    [quantities],
+    [itemsById, quantities],
   );
 
   const subtotal = lines.reduce(
@@ -65,10 +73,19 @@ export default function PosTerminal() {
   const itemCount = lines.reduce((count, line) => count + line.quantity, 0);
 
   function adjust(id: string, delta: number) {
+    const item = itemsById.get(id);
+    if (!item) return;
+
     setCompleted(null);
+    setError(null);
     setQuantities((current) => {
       const next = { ...current };
-      const quantity = (next[id] ?? 0) + delta;
+      // Clamped here as a courtesy, not as enforcement — the server rechecks
+      // stock inside the transaction that writes the order.
+      const quantity = Math.min(
+        (next[id] ?? 0) + delta,
+        sellableLimit(item),
+      );
       // Dropping the key rather than storing 0 keeps re-added items at the
       // bottom of the ticket, where the cashier just tapped.
       if (quantity <= 0) delete next[id];
@@ -80,20 +97,27 @@ export default function PosTerminal() {
   function clearOrder() {
     setQuantities({});
     setCompleted(null);
+    setError(null);
   }
 
   function charge() {
-    if (lines.length === 0) return;
-    setCompleted({
-      reference: `#${String(orderNumber).padStart(4, "0")}`,
-      lines,
-      subtotal,
-      tax,
-      total,
-      method,
+    if (lines.length === 0 || isCharging) return;
+
+    const request = lines.map(({ item, quantity }) => ({
+      itemId: item.id,
+      quantity,
+    }));
+
+    startCharging(async () => {
+      const result = await checkout(request, method);
+      if (result.ok) {
+        setCompleted(result.order);
+        setQuantities({});
+        setError(null);
+      } else {
+        setError(result.error);
+      }
     });
-    setOrderNumber((n) => n + 1);
-    setQuantities({});
   }
 
   return (
@@ -112,25 +136,33 @@ export default function PosTerminal() {
           </label>
 
           <div className="flex flex-wrap gap-2" role="group" aria-label="Category">
-            {(["All", ...CATEGORIES] as const).map((name) => (
+            {[{ id: "all", name: "All" }, ...categories].map((option) => (
               <button
-                key={name}
+                key={option.id}
                 type="button"
-                aria-pressed={category === name}
-                onClick={() => setCategory(name)}
+                aria-pressed={categoryId === option.id}
+                onClick={() => setCategoryId(option.id)}
                 className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
-                  category === name
+                  categoryId === option.id
                     ? "border-accent/40 bg-accent/15 text-accent"
                     : "border-white/10 text-muted hover:border-white/20 hover:text-foreground"
                 }`}
               >
-                {name}
+                {option.name}
               </button>
             ))}
           </div>
         </div>
 
-        {visibleItems.length === 0 ? (
+        {items.length === 0 ? (
+          <p className="mt-10 text-center text-sm text-muted">
+            The menu is empty. Add items on the{" "}
+            <a className="text-accent underline" href="/pos/menu">
+              menu screen
+            </a>
+            .
+          </p>
+        ) : visibleItems.length === 0 ? (
           <p className="mt-10 text-center text-sm text-muted">
             No items match “{query.trim()}”.
           </p>
@@ -138,12 +170,17 @@ export default function PosTerminal() {
           <ul className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
             {visibleItems.map((item) => {
               const quantity = quantities[item.id] ?? 0;
+              const limit = sellableLimit(item);
+              const soldOut = limit <= 0;
+              const atLimit = quantity >= limit;
+
               return (
                 <li key={item.id}>
                   <button
                     type="button"
                     onClick={() => adjust(item.id, 1)}
-                    className="group relative flex h-full w-full flex-col justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-left transition-all hover:border-accent/40 hover:bg-white/[0.06] focus:border-accent/40 focus:outline-none active:scale-[0.98]"
+                    disabled={soldOut || atLimit}
+                    className="group relative flex h-full w-full flex-col justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-left transition-all hover:border-accent/40 hover:bg-white/[0.06] focus:border-accent/40 focus:outline-none active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
                   >
                     <span className="text-sm leading-5 font-medium">
                       {item.name}
@@ -152,9 +189,15 @@ export default function PosTerminal() {
                       <span className="text-sm text-accent">
                         {formatMoney(item.price)}
                       </span>
-                      <span className="text-[0.65rem] tracking-wider text-muted/70 uppercase">
-                        {item.category}
-                      </span>
+                      {soldOut ? (
+                        <span className="text-[0.65rem] tracking-wider text-muted/70 uppercase">
+                          {item.available ? "Sold out" : "Off menu"}
+                        </span>
+                      ) : item.stock !== null && item.stock <= LOW_STOCK ? (
+                        <span className="text-[0.65rem] tracking-wider text-amber-400/80 uppercase">
+                          {item.stock} left
+                        </span>
+                      ) : null}
                     </span>
                     {quantity > 0 && (
                       <span className="absolute -top-2 -right-2 flex size-6 items-center justify-center rounded-full bg-accent text-xs font-semibold text-background">
@@ -217,6 +260,7 @@ export default function PosTerminal() {
                         <StepperButton
                           label={`Add one ${item.name}`}
                           onClick={() => adjust(item.id, 1)}
+                          disabled={quantity >= sellableLimit(item)}
                         >
                           +
                         </StepperButton>
@@ -264,11 +308,20 @@ export default function PosTerminal() {
                 ))}
               </div>
 
+              {error && (
+                <p
+                  role="alert"
+                  className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300"
+                >
+                  {error}
+                </p>
+              )}
+
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={clearOrder}
-                  disabled={lines.length === 0}
+                  disabled={lines.length === 0 || isCharging}
                   className="rounded-full border border-white/10 px-4 py-2.5 text-sm text-muted transition-colors hover:border-white/20 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
                 >
                   Clear
@@ -276,10 +329,10 @@ export default function PosTerminal() {
                 <button
                   type="button"
                   onClick={charge}
-                  disabled={lines.length === 0}
+                  disabled={lines.length === 0 || isCharging}
                   className="flex-1 rounded-full bg-accent px-4 py-2.5 text-sm font-medium text-background transition-all hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
                 >
-                  Charge {formatMoney(total)}
+                  {isCharging ? "Saving…" : `Charge ${formatMoney(total)}`}
                 </button>
               </div>
             </footer>
@@ -302,18 +355,21 @@ function Row({ label, value }: { label: string; value: string }) {
 function StepperButton({
   label,
   onClick,
+  disabled,
   children,
 }: {
   label: string;
   onClick: () => void;
+  disabled?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       aria-label={label}
-      className="flex size-6 items-center justify-center rounded-md border border-white/10 text-sm leading-none text-muted transition-colors hover:border-accent/40 hover:text-accent"
+      className="flex size-6 items-center justify-center rounded-md border border-white/10 text-sm leading-none text-muted transition-colors hover:border-accent/40 hover:text-accent disabled:pointer-events-none disabled:opacity-30"
     >
       {children}
     </button>
@@ -324,7 +380,7 @@ function Receipt({
   order,
   onDismiss,
 }: {
-  order: CompletedOrder;
+  order: Order;
   onDismiss: () => void;
 }) {
   return (
@@ -334,20 +390,18 @@ function Receipt({
           Payment taken
         </p>
         <h2 className="mt-1.5 text-sm font-semibold">
-          Order {order.reference} · {order.method}
+          Order #{order.reference} · {order.method}
         </h2>
       </header>
 
       <div className="max-h-64 overflow-y-auto px-5 py-3">
         <ul className="space-y-2 text-sm">
-          {order.lines.map(({ item, quantity }) => (
-            <li key={item.id} className="flex justify-between gap-3">
+          {order.lines.map((line) => (
+            <li key={line.itemId} className="flex justify-between gap-3">
               <span className="min-w-0 truncate text-muted">
-                {quantity} × {item.name}
+                {line.quantity} × {line.name}
               </span>
-              <span className="tabular-nums">
-                {formatMoney(item.price * quantity)}
-              </span>
+              <span className="tabular-nums">{formatMoney(line.lineTotal)}</span>
             </li>
           ))}
         </ul>
@@ -356,7 +410,7 @@ function Receipt({
       <footer className="space-y-4 border-t border-white/10 px-5 py-4">
         <dl className="space-y-1.5 text-sm">
           <Row label="Subtotal" value={formatMoney(order.subtotal)} />
-          <Row label={TAX_LABEL} value={formatMoney(order.tax)} />
+          <Row label={order.taxLabel} value={formatMoney(order.tax)} />
           <div className="flex items-baseline justify-between pt-1.5 text-base font-semibold">
             <dt>Paid</dt>
             <dd className="tabular-nums text-accent">

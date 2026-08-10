@@ -1,0 +1,62 @@
+import "server-only";
+
+import { cert, getApps, initializeApp, type App } from "firebase-admin/app";
+import { getFirestore, type Firestore } from "firebase-admin/firestore";
+
+import { requireEnv } from "@/lib/auth/config";
+
+/**
+ * Firestore through the Admin SDK, server-side only.
+ *
+ * The POS authenticates with its own Google OAuth session (see
+ * `lib/auth/session.ts`), not Firebase Auth, so there is no Firebase identity to
+ * hang security rules off. Every read and write therefore goes through the
+ * server, where `requirePosUser()` is the single authorization gate and the
+ * service account never leaves the machine. `firestore.rules` denies all client
+ * access outright — the Admin SDK bypasses rules by design.
+ */
+
+/**
+ * Vercel (and most dashboards) store multi-line values with the newlines
+ * escaped. A key that still contains a literal backslash-n fails to parse with
+ * an error that points nowhere useful, so normalise it here.
+ */
+function privateKey(): string {
+  return requireEnv("FIREBASE_PRIVATE_KEY").replace(/\\n/g, "\n");
+}
+
+function initialize(): App {
+  // `getApps()` is the guard that matters in dev: the module is re-evaluated on
+  // every HMR pass, and initializing a second app with the same name throws.
+  const [existing] = getApps();
+  if (existing) return existing;
+
+  return initializeApp({
+    credential: cert({
+      projectId: requireEnv("FIREBASE_PROJECT_ID"),
+      clientEmail: requireEnv("FIREBASE_CLIENT_EMAIL"),
+      privateKey: privateKey(),
+    }),
+  });
+}
+
+let firestore: Firestore | undefined;
+
+export function getDb(): Firestore {
+  if (firestore) return firestore;
+
+  firestore = getFirestore(initialize());
+  // A field set to `undefined` would otherwise throw on write. Treating it as
+  // "leave this field out" is what every call site here actually wants.
+  firestore.settings({ ignoreUndefinedProperties: true });
+
+  return firestore;
+}
+
+export const COLLECTIONS = {
+  categories: "categories",
+  menuItems: "menuItems",
+  orders: "orders",
+  /** One doc per business date, holding that day's receipt-number sequence. */
+  counters: "counters",
+} as const;
