@@ -95,4 +95,6 @@ export const COLLECTIONS = {
   recipes: "recipes",
   /** Completed bakes: materials out, finished units in. */
   productions: "productions",
+  /** Hand corrections to a menu item's finished count. */
+  stockAdjustments: "stockAdjustments",
 } as const;

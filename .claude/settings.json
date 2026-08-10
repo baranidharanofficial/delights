@@ -77,7 +77,8 @@
       "Bash(grep -n \"cashier,$\" src/lib/shop/orders.ts)",
       "Bash(curl -s -o /tmp/rep.html -w '%{http_code}' -H 'Cookie: delights_pos_session=__TRACKED_VAR__' http://localhost:3000/pos/reports)",
       "Bash(curl -s -H 'Cookie: delights_pos_session=__TRACKED_VAR__' http://localhost:3000/pos/menu)",
-      "Bash(curl -s -H 'Cookie: delights_pos_session=__TRACKED_VAR__' http://localhost:3000/pos/inventory)"
+      "Bash(curl -s -H 'Cookie: delights_pos_session=__TRACKED_VAR__' http://localhost:3000/pos/inventory)",
+      "Bash(curl -s -o /tmp/inv.html -w '%{http_code}' -H 'Cookie: delights_pos_session=__TRACKED_VAR__' http://localhost:3000/pos/inventory)"
     ]
   }
 }

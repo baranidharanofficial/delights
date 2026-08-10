@@ -208,6 +208,41 @@ export type Production = {
   by: { email: string; name: string | null };
 };
 
+/**
+ * A hand correction to a menu item's finished count.
+ *
+ * The other three ways finished stock moves each leave their own record — a
+ * sale in `orders`, a bake in `productions`, a cancellation in the order's void
+ * block. This covers the fourth, which is the only one with nothing behind it.
+ */
+export type StockAdjustment = {
+  id: string;
+  itemId: string;
+  itemName: string;
+  /** Count before. `null` means the item was not being counted. */
+  previous: number | null;
+  /** Count after. `null` means counting was stopped. */
+  next: number | null;
+  /**
+   * Units gained or lost. `null` when counting started or stopped, because
+   * declaring a baseline is not the same as goods moving.
+   */
+  delta: number | null;
+  note: string | null;
+  businessDate: string;
+  atMs: number;
+  by: { email: string; name: string | null };
+};
+
+/** How an adjustment reads in a list. */
+export function describeAdjustment(adjustment: StockAdjustment): string {
+  const { previous, next, delta } = adjustment;
+
+  if (previous === null) return `Started counting at ${next}`;
+  if (next === null) return `Stopped counting (was ${previous})`;
+  return `${previous} → ${next} (${delta !== null && delta > 0 ? "+" : ""}${delta})`;
+}
+
 export type DailyReport = {
   businessDate: string;
   /** Live sales only — voided orders are excluded from every total below. */

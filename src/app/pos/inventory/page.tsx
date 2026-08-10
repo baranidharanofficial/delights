@@ -1,4 +1,5 @@
 import { requirePosUser } from "@/lib/auth/session";
+import { getRecentAdjustments } from "@/lib/shop/finished-stock";
 import { getMaterials, getRecentMovements } from "@/lib/shop/materials";
 import { getMenuItems } from "@/lib/shop/menu";
 
@@ -7,8 +8,9 @@ import InventoryScreen from "./inventory-screen";
 
 export default async function InventoryPage() {
   const user = await requirePosUser();
-  const [items, materials, movements] = await Promise.all([
+  const [items, adjustments, materials, movements] = await Promise.all([
     getMenuItems(),
+    getRecentAdjustments(),
     getMaterials(),
     getRecentMovements(),
   ]);
@@ -18,6 +20,7 @@ export default async function InventoryPage() {
       <PosHeader user={user} current="/pos/inventory" subtitle="Inventory" />
       <InventoryScreen
         items={items}
+        adjustments={adjustments}
         materials={materials}
         movements={movements}
       />

@@ -14,7 +14,7 @@ import {
   updateMaterial,
   type Actor,
 } from "@/lib/shop/materials";
-import { updateMenuItem } from "@/lib/shop/menu";
+import { setFinishedCount } from "@/lib/shop/finished-stock";
 import { parseRupees } from "@/lib/shop/money";
 import { isUnit, parseQuantity, type Unit } from "@/lib/shop/units";
 
@@ -75,7 +75,13 @@ export async function setFinishedStock(
     stock = parsed;
   }
 
-  await updateMenuItem(id, { stock });
+  const result = await setFinishedCount(
+    id,
+    stock,
+    text(formData, "note") || null,
+    await actor(),
+  );
+  if (!result.ok) return { error: result.error };
 
   revalidatePath("/pos/inventory");
   // The terminal greys out sold-out items, so it reads this figure too.

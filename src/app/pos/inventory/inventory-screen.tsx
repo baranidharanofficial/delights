@@ -16,9 +16,11 @@ import {
 import {
   MOVEMENT_LABELS,
   isLowStock,
+  describeAdjustment,
   type Material,
   type MaterialMovement,
   type MenuItem,
+  type StockAdjustment,
 } from "@/lib/shop/types";
 
 import { EMPTY_FORM_STATE } from "../form-state";
@@ -377,6 +379,12 @@ function FinishedGoodsRow({ item }: { item: MenuItem }) {
         </span>
 
         <input
+          name="note"
+          placeholder="Why…"
+          aria-label={`Reason for correcting the count of ${item.name}`}
+          className={`${FIELD} hidden min-w-0 flex-1 sm:block`}
+        />
+        <input
           name="stock"
           defaultValue={item.stock ?? ""}
           placeholder="—"
@@ -391,7 +399,43 @@ function FinishedGoodsRow({ item }: { item: MenuItem }) {
   );
 }
 
-function FinishedGoods({ items }: { items: MenuItem[] }) {
+function Corrections({ adjustments }: { adjustments: StockAdjustment[] }) {
+  if (adjustments.length === 0) {
+    return (
+      <p className="mt-3 border-t border-white/10 pt-3 text-[0.7rem] text-muted/70">
+        No counts corrected by hand yet. Sales, bakes and voids move these
+        figures on their own and each leaves its own record.
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-3 border-t border-white/10 pt-3">
+      <p className="text-[0.65rem] tracking-wider text-muted/70 uppercase">
+        Recent count corrections
+      </p>
+      <ul className="mt-1.5 space-y-1">
+        {adjustments.map((adjustment) => (
+          <li key={adjustment.id} className="text-[0.7rem] text-muted">
+            <span className="text-foreground/80">{adjustment.itemName}</span>{" "}
+            {describeAdjustment(adjustment)} · {adjustment.businessDate}{" "}
+            {formatIstTime(adjustment.atMs)} ·{" "}
+            {adjustment.by.name ?? adjustment.by.email}
+            {adjustment.note ? ` · ${adjustment.note}` : ""}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function FinishedGoods({
+  items,
+  adjustments,
+}: {
+  items: MenuItem[];
+  adjustments: StockAdjustment[];
+}) {
   const counted = items.filter((item) => item.stock !== null);
   const soldOut = counted.filter((item) => item.stock === 0).length;
 
@@ -420,11 +464,13 @@ function FinishedGoods({ items }: { items: MenuItem[] }) {
         </ul>
       )}
 
-      <p className="mt-3 border-t border-white/10 pt-3 text-[0.7rem] text-muted/70">
+      <p className="mt-3 text-[0.7rem] text-muted/70">
         Sales take units out, bakes put them in, voids put them back. Set a count
         here only to correct it or to start counting an item. Leave it blank to
         stop counting — an uncounted item never reads as sold out.
       </p>
+
+      <Corrections adjustments={adjustments} />
     </section>
   );
 }
@@ -483,10 +529,12 @@ function Ledger({ movements }: { movements: MaterialMovement[] }) {
 
 export default function InventoryScreen({
   items,
+  adjustments,
   materials,
   movements,
 }: {
   items: MenuItem[];
+  adjustments: StockAdjustment[];
   materials: Material[];
   movements: MaterialMovement[];
 }) {
@@ -511,7 +559,7 @@ export default function InventoryScreen({
         <Tile label="Low stock" value={String(lowCount)} />
       </section>
 
-      <FinishedGoods items={items} />
+      <FinishedGoods items={items} adjustments={adjustments} />
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <section
