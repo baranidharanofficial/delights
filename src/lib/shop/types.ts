@@ -257,3 +257,132 @@ export type DailyReport = {
   voidedCount: number;
   voidedTotal: number;
 };
+
+// --- Tasks ------------------------------------------------------------------
+
+/**
+ * The board's columns, in the order they are drawn. A task's status *is* the
+ * column it sits in — there is no separate "which lane" field to fall out of
+ * step with it.
+ */
+export const TASK_STATUSES = ["todo", "doing", "done"] as const;
+export type TaskStatus = (typeof TASK_STATUSES)[number];
+
+export function isTaskStatus(value: unknown): value is TaskStatus {
+  return TASK_STATUSES.includes(value as TaskStatus);
+}
+
+export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
+  todo: "To do",
+  doing: "In progress",
+  done: "Done",
+};
+
+export const TASK_PRIORITIES = ["low", "normal", "high"] as const;
+export type TaskPriority = (typeof TASK_PRIORITIES)[number];
+
+export function isTaskPriority(value: unknown): value is TaskPriority {
+  return TASK_PRIORITIES.includes(value as TaskPriority);
+}
+
+export const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
+  low: "Low",
+  normal: "Normal",
+  high: "High",
+};
+
+/**
+ * A card on the shop's board — "order more butter", "fix the second oven".
+ *
+ * `assignee` is free text rather than a reference to a user. The allowlist that
+ * grants POS access holds a handful of addresses, and half the people a task
+ * gets handed to (the electrician, the landlord) will never sign in at all.
+ */
+export type Task = {
+  id: string;
+  title: string;
+  notes: string | null;
+  status: TaskStatus;
+  priority: TaskPriority;
+  assignee: string | null;
+  /** `YYYY-MM-DD` in IST, or `null` when nothing is riding on a date. */
+  dueDate: string | null;
+  /** Position within its column. Rewritten to contiguous steps on every move. */
+  sortOrder: number;
+  createdAtMs: number;
+  createdBy: { email: string; name: string | null };
+  /** When it last entered `done`; `null` anywhere else. */
+  completedAtMs: number | null;
+};
+
+/** Past its due date and still not finished. */
+export function isOverdue(task: Task, today: string): boolean {
+  return task.status !== "done" && task.dueDate !== null && task.dueDate < today;
+}
+
+// --- Expenses ---------------------------------------------------------------
+
+export const EXPENSE_CATEGORIES = [
+  "Ingredients",
+  "Packaging",
+  "Rent",
+  "Utilities",
+  "Wages",
+  "Equipment",
+  "Maintenance",
+  "Transport",
+  "Marketing",
+  "Fees",
+  "Other",
+] as const;
+export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
+
+export function isExpenseCategory(value: unknown): value is ExpenseCategory {
+  return EXPENSE_CATEGORIES.includes(value as ExpenseCategory);
+}
+
+/**
+ * How money left the business.
+ *
+ * Deliberately not `PaymentMethod`: money can leave straight out of the bank
+ * account, which is not something that can ever happen at the till. One shared
+ * list would let a sale be rung up as "Bank".
+ */
+export const EXPENSE_METHODS = ["Cash", "Card", "UPI", "Bank"] as const;
+export type ExpenseMethod = (typeof EXPENSE_METHODS)[number];
+
+export function isExpenseMethod(value: unknown): value is ExpenseMethod {
+  return EXPENSE_METHODS.includes(value as ExpenseMethod);
+}
+
+/**
+ * Money spent, recorded by hand.
+ *
+ * Unlike an order or a ledger row this is a plain record rather than the
+ * evidence behind a running balance, so correcting one in place is honest — it
+ * is the same claim about the same payment, typed properly the second time.
+ */
+export type Expense = {
+  id: string;
+  /** Paise, always positive. That it is money out is the type's whole point. */
+  amount: number;
+  category: ExpenseCategory;
+  description: string;
+  vendor: string | null;
+  method: ExpenseMethod;
+  /** `YYYY-MM-DD` in IST — the day the shop counts the spend against. */
+  businessDate: string;
+  recordedAtMs: number;
+  by: { email: string; name: string | null };
+};
+
+export type ExpenseSummary = {
+  month: string;
+  total: number;
+  count: number;
+  /** Descending by amount; only categories actually used appear. */
+  byCategory: { category: ExpenseCategory; total: number; count: number }[];
+  byMethod: Record<ExpenseMethod, { count: number; total: number }>;
+  /** Every day that had spend, ascending — the shape of the month. */
+  byDate: { date: string; total: number }[];
+};

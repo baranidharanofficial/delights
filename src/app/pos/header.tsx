@@ -10,13 +10,15 @@ const TABS = [
   { href: "/pos/menu", label: "Menu" },
   { href: "/pos/inventory", label: "Inventory" },
   { href: "/pos/production", label: "Production" },
+  { href: "/pos/expenses", label: "Expenses" },
   { href: "/pos/reports", label: "Reports" },
+  { href: "/pos/tasks", label: "Board" },
 ] as const;
 
 export type PosTab = (typeof TABS)[number]["href"];
 
 /**
- * Shared chrome for the three signed-in POS screens.
+ * Shared chrome for the signed-in POS screens.
  *
  * Not in `layout.tsx` — that layout also wraps `/pos/login`, which by definition
  * has no user to render. The active tab arrives as a prop so this stays a Server
@@ -43,7 +45,7 @@ export default function PosHeader({
         </div>
       </div>
 
-      <nav className="flex gap-2" aria-label="Sections">
+      <nav className="flex flex-wrap gap-2" aria-label="Sections">
         {TABS.map((tab) => (
           <Link
             key={tab.href}

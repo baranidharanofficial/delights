@@ -67,6 +67,38 @@ Removing an address from `POS_ALLOWED_EMAILS` revokes access immediately —
 existing sessions stop working on their next request rather than lingering
 until they expire.
 
+### Board (`/pos/tasks`)
+
+A three-column Kanban — To do, In progress, Done — for the shop's own work:
+reorder the gas, chase the oven repair. Cards carry a priority, a due date and
+whoever is on it; anything overdue is outlined in red and counted in the header.
+
+Cards move by dragging, or by the arrows beside them — the arrows are the ones
+that matter on the counter tablet, where nothing can be dragged. Position is a
+plain integer per column, rewritten to contiguous steps on every move, so
+ordering can never drift.
+
+Done cards stay until someone presses **Clear**. A finished chore is not a
+business record the way a sale or a stock movement is, and keeping every one of
+them forever would turn the board into a log.
+
+### Expenses (`/pos/expenses`)
+
+Money out, a month at a time: rent, wages, packaging, repairs. Each entry has a
+date, category, description, who it was paid to, the amount and how it was paid
+— including **Bank**, which is not a payment method a sale can ever use.
+
+Raw materials are deliberately **not** entered here. Buying flour already leaves
+a receipt in the material ledger (Inventory → Receive), where it also sets what
+the stock on hand is worth. The screen reads that figure back out of the ledger
+and shows it beside its own total, so a month's outgoings add up without either
+record having to know about the other — and without the same invoice being
+counted twice.
+
+Business dates are stored as `YYYY-MM-DD` strings, whose lexical order is their
+chronological order, so a month is one range query against the single-field
+index Firestore maintains by default. No composite index to declare or deploy.
+
 The product catalog in [src/app/pos/catalog.ts](src/app/pos/catalog.ts) is
 placeholder data, and completed orders are not persisted anywhere yet.
 

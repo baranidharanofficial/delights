@@ -97,4 +97,8 @@ export const COLLECTIONS = {
   productions: "productions",
   /** Hand corrections to a menu item's finished count. */
   stockAdjustments: "stockAdjustments",
+  /** Cards on the shop's board — one doc per task. */
+  tasks: "tasks",
+  /** Money out, recorded by hand. */
+  expenses: "expenses",
 } as const;

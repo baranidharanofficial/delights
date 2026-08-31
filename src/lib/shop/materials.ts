@@ -9,7 +9,7 @@ import {
 
 import { COLLECTIONS, getDb } from "@/lib/firebase/admin";
 
-import { businessDate } from "./dates";
+import { businessDate, businessMonthBounds } from "./dates";
 import { formatQuantity, isUnit, valueOf, type Unit } from "./units";
 import type { Material, MaterialMovement, MovementKind } from "./types";
 
@@ -285,6 +285,31 @@ function readMovement(doc: DocumentSnapshot): MaterialMovement | null {
     atMs: at instanceof Timestamp ? at.toMillis() : 0,
     by: { email: String(data.by?.email ?? ""), name: data.by?.name ?? null },
   };
+}
+
+/**
+ * What the month's material receipts cost, in paise.
+ *
+ * The expenses screen shows this next to its own total so a month's outgoings
+ * read complete without anyone having to type a flour invoice twice. Filtered
+ * by kind here rather than in the query: a second equality clause alongside the
+ * date range would need a composite index, and a month of movements is a short
+ * enough list to sift in memory.
+ */
+export async function getMaterialSpendForMonth(month: string): Promise<number> {
+  const { first, last } = businessMonthBounds(month);
+
+  const snapshot = await getDb()
+    .collection(COLLECTIONS.materialMovements)
+    .where("businessDate", ">=", first)
+    .where("businessDate", "<=", last)
+    .get();
+
+  return snapshot.docs
+    .map(readMovement)
+    .filter((movement): movement is MaterialMovement => movement !== null)
+    .filter((movement) => movement.kind === "receipt")
+    .reduce((sum, movement) => sum + movement.value, 0);
 }
 
 /**
