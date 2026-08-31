@@ -67,11 +67,26 @@ Removing an address from `POS_ALLOWED_EMAILS` revokes access immediately —
 existing sessions stop working on their next request rather than lingering
 until they expire.
 
+### Getting around
+
+Every signed-in screen is wrapped by [PosShell](src/app/pos/shell.tsx): a
+navigation panel down the left, and a slim bar across the top for the page's
+name and the account. The sections are grouped — Counter, Kitchen, Office —
+rather than listed flat, because seven destinations in a row stops reading as a
+set of choices.
+
+The panel is a side panel only where there is width for one. Below `md` the same
+markup lays itself back across the top as a scrolling row of pills. That is done
+in CSS rather than with a drawer, which keeps the whole shell a Server Component
+and sidesteps the bug every drawer has: it must be told to close on each
+navigation, and forgets to exactly once.
+
 ### Board (`/pos/tasks`)
 
 A three-column Kanban — To do, In progress, Done — for the shop's own work:
 reorder the gas, chase the oven repair. Cards carry a priority, a due date and
-whoever is on it; anything overdue is outlined in red and counted in the header.
+whoever is on it; anything overdue is outlined in red and counted in the title
+bar.
 
 Cards move by dragging, or by the arrows beside them — the arrows are the ones
 that matter on the counter tablet, where nothing can be dragged. Position is a

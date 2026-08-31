@@ -3,7 +3,7 @@ import { businessDate } from "@/lib/shop/dates";
 import { getTasks } from "@/lib/shop/tasks";
 import { isOverdue } from "@/lib/shop/types";
 
-import PosHeader from "../header";
+import PosShell from "../shell";
 import TaskBoard from "./board";
 
 export default async function TasksPage() {
@@ -17,17 +17,16 @@ export default async function TasksPage() {
   const open = tasks.filter((task) => task.status !== "done").length;
 
   return (
-    <div className="flex flex-1 flex-col">
-      <PosHeader
-        user={user}
-        current="/pos/tasks"
-        subtitle={
-          overdue > 0
-            ? `Board · ${open} open · ${overdue} overdue`
-            : `Board · ${open} open`
-        }
-      />
+    <PosShell
+      user={user}
+      current="/pos/tasks"
+      subtitle={
+        overdue > 0
+          ? `Board · ${open} open · ${overdue} overdue`
+          : `Board · ${open} open`
+      }
+    >
       <TaskBoard tasks={tasks} today={today} />
-    </div>
+    </PosShell>
   );
 }

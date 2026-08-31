@@ -13,7 +13,7 @@ import { PAYMENT_METHODS, type DailyReport, type Order } from "@/lib/shop/types"
 
 import OrderList from "./order-list";
 
-import PosHeader from "../header";
+import PosShell from "../shell";
 
 export default async function ReportsPage({
   searchParams,
@@ -31,9 +31,7 @@ export default async function ReportsPage({
   const { report, orders } = await getDailyReport(date);
 
   return (
-    <div className="flex flex-1 flex-col">
-      <PosHeader user={user} current="/pos/reports" subtitle="Reports" />
-
+    <PosShell user={user} current="/pos/reports" subtitle="Reports">
       <div className="flex flex-col gap-6 px-4 pb-8 sm:px-6">
         <DateNav date={date} today={today} />
         <Totals report={report} />
@@ -43,7 +41,7 @@ export default async function ReportsPage({
           <Orders orders={orders} />
         </div>
       </div>
-    </div>
+    </PosShell>
   );
 }
 

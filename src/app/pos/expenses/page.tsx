@@ -16,7 +16,7 @@ import { EXPENSE_METHODS, type ExpenseSummary } from "@/lib/shop/types";
 
 import ExpenseList from "./expense-list";
 
-import PosHeader from "../header";
+import PosShell from "../shell";
 
 export default async function ExpensesPage({
   searchParams,
@@ -39,9 +39,7 @@ export default async function ExpensesPage({
   const today = businessDate();
 
   return (
-    <div className="flex flex-1 flex-col">
-      <PosHeader user={user} current="/pos/expenses" subtitle="Expenses" />
-
+    <PosShell user={user} current="/pos/expenses" subtitle="Expenses">
       <div className="flex flex-col gap-6 px-4 pb-8 sm:px-6">
         <MonthNav month={month} thisMonth={thisMonth} />
         <Totals summary={summary} materialSpend={materialSpend} />
@@ -62,7 +60,7 @@ export default async function ExpensesPage({
           </div>
         </div>
       </div>
-    </div>
+    </PosShell>
   );
 }
 
