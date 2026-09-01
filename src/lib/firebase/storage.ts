@@ -10,9 +10,11 @@ import { getApp } from "./admin";
 /**
  * Image storage in the project's Firebase Storage bucket.
  *
- * Objects are never made public. Everything is read back through
- * `/api/images/[...key]`, which checks the POS session first — the same rule the
- * rest of the app follows, and it avoids depending on whether the bucket has
+ * Objects are never made public at the bucket. Everything is read back through
+ * `/api/images/[...key]`, which decides who may see what: material photos need a
+ * POS session, menu photos are served to anyone because the public menu shows
+ * them. Routing both through the app rather than opening the bucket keeps that
+ * choice in one readable place, and avoids depending on whether the bucket has
  * uniform bucket-level access turned on.
  */
 

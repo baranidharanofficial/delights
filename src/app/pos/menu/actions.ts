@@ -24,6 +24,9 @@ function refresh() {
   revalidatePath("/pos");
   // Inventory lists these items to show their counts.
   revalidatePath("/pos/inventory");
+  // The public menu is prerendered, so a price change reaches customers only
+  // when something says so.
+  revalidatePath("/menu");
 }
 
 function text(formData: FormData, field: string): string {

@@ -117,6 +117,34 @@ index Firestore maintains by default. No composite index to declare or deploy.
 The product catalog in [src/app/pos/catalog.ts](src/app/pos/catalog.ts) is
 placeholder data, and completed orders are not persisted anywhere yet.
 
+## Public menu (`/menu`)
+
+The customer-facing menu, open to anyone. It reads the same `categories` and
+`menuItems` the terminal sells from, so there is no second copy of the menu to
+keep in step — grouped into sections, empty ones dropped.
+
+An item taken off the menu by hand is not listed at all. One that is stock
+tracked and down to zero is listed and marked *Sold out*, because a customer is
+better served knowing the shop makes it than wondering whether it exists.
+
+The page is prerendered rather than rendered per visit. Menu edits push a fresh
+copy immediately — [the menu actions](src/app/pos/menu/actions.ts) revalidate
+`/menu` alongside the POS screens — while `revalidate = 60` covers the one thing
+no edit announces: stock moving under a sale or a bake. So a price change is
+live at once, and a *Sold out* badge is at most a minute behind.
+
+Because the page is prerendered at build time, `next build` reads Firestore and
+needs the `FIREBASE_*` variables present in the build environment.
+
+### Menu pictures
+
+[/api/images](src/app/api/images/[...key]/route.ts) serves both kinds of image
+out of the private bucket, and the object key decides who may see one: anything
+under `menu/` is public, everything else still requires a POS session. Menu
+photographs are the one class of image whose purpose is to be shown to people
+who will never sign in; material photographs are not, and stay gated.
+
+
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
 ## Learn More

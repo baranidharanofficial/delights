@@ -13,6 +13,8 @@ function refresh() {
   revalidatePath("/pos/menu");
   revalidatePath("/pos/inventory");
   revalidatePath("/pos/production");
+  // ...including the public menu, which shows the menu-item pictures.
+  revalidatePath("/menu");
 }
 
 export async function saveImage(formData: FormData): Promise<ImageResult> {
