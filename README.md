@@ -136,6 +136,31 @@ live at once, and a *Sold out* badge is at most a minute behind.
 Because the page is prerendered at build time, `next build` reads Firestore and
 needs the `FIREBASE_*` variables present in the build environment.
 
+### Loading the menu
+
+[scripts/seed.mjs](scripts/seed.mjs) holds the printed menu — categories, item
+names and rupee prices — and writes it into Firestore:
+
+```bash
+npm run seed            # create anything missing, touch nothing else
+npm run seed -- --reset # wipe the menu and rebuild it from the script
+```
+
+Plain `seed` is idempotent: ids are fixed slugs, and documents that already
+exist are left alone, so it will not stomp prices or stock you have edited in
+the app. `--reset` is the "the printed menu changed" path — it deletes every
+category, item, recipe and menu photograph first, and does throw away those
+edits.
+
+Deleting items is safe for the books either way: order lines snapshot the name
+and price at the moment of sale, so past receipts and reports do not depend on
+the items still existing. Raw materials and their photographs live in their own
+collections and are never touched.
+
+Item ids are namespaced by category (`shake-vanilla`, `ice-vanilla`) because the
+same name legitimately appears on both ends of the menu. The script refuses to
+run if two items in one category would collide.
+
 ### Menu pictures
 
 [/api/images](src/app/api/images/[...key]/route.ts) serves both kinds of image

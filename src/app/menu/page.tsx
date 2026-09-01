@@ -50,6 +50,59 @@ function isSoldOut(item: MenuItem): boolean {
   return item.stock !== null && item.stock <= 0;
 }
 
+/**
+ * `formatMoney` with the paise dropped when there are none.
+ *
+ * A board price is written "₹59", not "₹59.00", and eighty-five rows of "​.00"
+ * is just noise. Anything actually priced in paise still prints in full, so this
+ * only ever removes a decimal that was carrying no information.
+ */
+function priceLabel(minor: number): string {
+  return formatMoney(minor).replace(/\.00$/, "");
+}
+
+/** First letter of the name, for the stand-in tile. */
+function initial(name: string): string {
+  return (name.match(/[A-Za-z0-9]/)?.[0] ?? "•").toUpperCase();
+}
+
+/**
+ * The item's photograph, or a stand-in until one is uploaded.
+ *
+ * Skipping the picture entirely when there is none leaves a ragged grid — a few
+ * tall cards among short ones — which reads as broken rather than unfinished.
+ * The stand-in holds exactly the same space and carries the item's initial, so
+ * the rows stay even and the gap looks deliberate. It gives way to the real
+ * photograph on its own, the moment `imageKey` is set from the menu screen.
+ */
+function Thumbnail({ item }: { item: MenuItem }) {
+  if (item.imageKey === null) {
+    return (
+      <div
+        aria-hidden
+        className="flex h-40 w-full items-center justify-center border-b border-white/5 bg-[radial-gradient(ellipse_at_center,rgba(222,184,135,0.10),transparent_70%)]"
+      >
+        <span className="text-5xl font-semibold text-accent/20 select-none">
+          {initial(item.name)}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    // Plain <img>, matching the terminal: these are served by /api/images out
+    // of a private bucket rather than from /public, so there is nothing for the
+    // optimizer to pre-size at build time.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={`/api/images/${item.imageKey}`}
+      alt=""
+      loading="lazy"
+      className="h-40 w-full object-cover"
+    />
+  );
+}
+
 export default async function MenuPage() {
   const { categories, items } = await getMenu();
   const sections = toSections(categories, items);
@@ -126,19 +179,7 @@ export default async function MenuPage() {
                           soldOut ? "opacity-50" : ""
                         }`}
                       >
-                        {item.imageKey && (
-                          // Plain <img>, matching the terminal: these are served
-                          // by /api/images out of a private bucket rather than
-                          // from /public, so there is nothing for the optimizer
-                          // to pre-size at build time.
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={`/api/images/${item.imageKey}`}
-                            alt=""
-                            loading="lazy"
-                            className="h-40 w-full object-cover"
-                          />
-                        )}
+                        <Thumbnail item={item} />
 
                         <div className="flex flex-1 items-baseline justify-between gap-4 p-4">
                           <h3 className="text-base leading-6 font-medium">
@@ -150,7 +191,7 @@ export default async function MenuPage() {
                             </span>
                           ) : (
                             <span className="text-base whitespace-nowrap text-accent">
-                              {formatMoney(item.price)}
+                              {priceLabel(item.price)}
                             </span>
                           )}
                         </div>
