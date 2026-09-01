@@ -108,42 +108,48 @@ export default async function MenuPage() {
   const sections = toSections(categories, items);
 
   return (
-    <main className="relative flex flex-1 flex-col overflow-hidden">
+    // No `overflow-hidden` here, deliberately. An ancestor that clips becomes
+    // the scroll container for anything `sticky` inside it, and since this one
+    // never scrolls the section bar would simply slide away with the page. The
+    // glow below is inset on both sides, so there is nothing to clip anyway.
+    <main className="relative flex flex-1 flex-col">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-[32rem] bg-[radial-gradient(ellipse_at_top,rgba(222,184,135,0.08),transparent_65%)]"
       />
 
-      <div className="relative mx-auto w-full max-w-5xl px-6 pt-16 pb-24">
-        <header className="flex flex-col items-center text-center">
-          <Image
-            src="/logo.png"
-            alt=""
-            width={48}
-            height={83}
-            priority
-            className="drop-shadow-[0_0_30px_rgba(222,184,135,0.2)]"
-          />
-          <p className="mt-8 text-xs font-medium tracking-[0.35em] text-accent uppercase">
-            Our menu
-          </p>
-          <h1 className="mt-4 text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
-            Baked fresh, every day
-          </h1>
-        </header>
+      <header className="relative mx-auto flex w-full max-w-5xl flex-col items-center px-6 pt-16 text-center">
+        <Image
+          src="/logo.png"
+          alt=""
+          width={48}
+          height={83}
+          priority
+          className="drop-shadow-[0_0_30px_rgba(222,184,135,0.2)]"
+        />
+        <p className="mt-8 text-xs font-medium tracking-[0.35em] text-accent uppercase">
+          Our menu
+        </p>
+        <h1 className="mt-4 text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
+          Baked fresh, every day
+        </h1>
+      </header>
 
-        {sections.length === 0 ? (
-          <p className="mt-20 text-center text-base text-muted">
-            The menu is being updated. Please check back shortly.
-          </p>
-        ) : (
-          <>
-            {/* Jump links. A bakery menu is long on a phone, and the sections
-                are the only structure worth navigating by. */}
-            <nav
-              aria-label="Menu sections"
-              className="sticky top-0 z-10 -mx-6 mt-12 overflow-x-auto border-b border-white/10 bg-background/80 px-6 py-3 backdrop-blur"
-            >
+      {sections.length === 0 ? (
+        <p className="mx-auto mt-20 w-full max-w-5xl px-6 pb-24 text-center text-base text-muted">
+          The menu is being updated. Please check back shortly.
+        </p>
+      ) : (
+        <>
+          {/* Thirteen sections and eighty-odd items: the jump links are the only
+              practical way down the page, so they stay put once reached. The bar
+              spans the viewport while its links stay on the same measure as the
+              menu — a strip floating at the content width reads as a stray card. */}
+          <nav
+            aria-label="Menu sections"
+            className="sticky top-0 z-10 mt-12 border-b border-white/10 bg-background/85 backdrop-blur"
+          >
+            <div className="mx-auto w-full max-w-5xl overflow-x-auto px-6 py-3">
               <ul className="flex gap-2">
                 {sections.map(({ category }) => (
                   <li key={category.id}>
@@ -156,12 +162,15 @@ export default async function MenuPage() {
                   </li>
                 ))}
               </ul>
-            </nav>
+            </div>
+          </nav>
 
+          <div className="relative mx-auto w-full max-w-5xl px-6 pb-24">
             {sections.map(({ category, items: sectionItems }) => (
               <section
                 key={category.id}
                 id={`category-${category.id}`}
+                // Clears the bar the link just scrolled underneath.
                 className="mt-16 scroll-mt-20"
               >
                 <h2 className="text-xs font-medium tracking-[0.3em] text-accent uppercase">
@@ -206,9 +215,9 @@ export default async function MenuPage() {
               Prices are exclusive of {TAX_LABEL}. Availability changes through
               the day.
             </p>
-          </>
-        )}
-      </div>
+          </div>
+        </>
+      )}
     </main>
   );
 }
