@@ -101,4 +101,6 @@ export const COLLECTIONS = {
   tasks: "tasks",
   /** Money out, recorded by hand. */
   expenses: "expenses",
+  /** Launch-offer signups, one doc per phone number, keyed by that number. */
+  launchSignups: "launchSignups",
 } as const;
