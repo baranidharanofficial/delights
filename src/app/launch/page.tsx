@@ -105,7 +105,7 @@ export default function LaunchPage() {
           style={{ animationDelay: "1s" }}
         >
           One code per number, one free milkshake per code, on launch day, in
-          store — open to{" "}
+          store open to{" "}
           {LAUNCH_CAP_LABEL}. The rest of the menu is at its usual price, and
           we&apos;ll only use your number to tell you when we open.
         </p>
