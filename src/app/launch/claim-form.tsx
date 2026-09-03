@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
-import { LAUNCH_DISCOUNT_LABEL } from "@/lib/shop/launch-offer";
+import { LAUNCH_OFFER_LABEL } from "@/lib/shop/launch-offer";
 
 import { claimOffer } from "./actions";
 import { IDLE_CLAIM, type ClaimState } from "./claim-state";
@@ -47,10 +47,7 @@ function Claimed({ state }: { state: Extract<ClaimState, { status: "claimed" }> 
 
       <p className="mt-4 text-sm leading-6 text-muted">
         Show this code at the counter on launch day for{" "}
-        <span className="text-foreground">
-          {LAUNCH_DISCOUNT_LABEL} every milkshake
-        </span>
-        . Saved
+        <span className="text-foreground">{LAUNCH_OFFER_LABEL}</span>. Saved
         against {state.phone}.
       </p>
     </div>

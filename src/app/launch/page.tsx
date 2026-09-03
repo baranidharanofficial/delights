@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 
-import { LAUNCH_DISCOUNT_LABEL } from "@/lib/shop/launch-offer";
+import { LAUNCH_CAP_LABEL, LAUNCH_OFFER_LABEL } from "@/lib/shop/launch-offer";
 
 import ClaimForm from "./claim-form";
 
 export const metadata: Metadata = {
-  title: `Launch day — ${LAUNCH_DISCOUNT_LABEL} milkshakes`,
-  description: `Leave your number and get ${LAUNCH_DISCOUNT_LABEL} every milkshake on our launch day.`,
+  title: `Launch day — ${LAUNCH_OFFER_LABEL}`,
+  description: `Leave your number and get a code for ${LAUNCH_OFFER_LABEL} on our launch day. Open to ${LAUNCH_CAP_LABEL} only.`,
 };
 
 /**
@@ -25,7 +25,7 @@ const STEPS = [
   { title: "Get your code", body: "Six characters, shown straight away on this page." },
   {
     title: "Show it at the counter",
-    body: `Every milkshake on the menu, ${LAUNCH_DISCOUNT_LABEL}, all launch day.`,
+    body: "Any milkshake on the menu, free, on launch day.",
   },
 ];
 
@@ -66,16 +66,16 @@ export default function LaunchPage() {
           className="rise mt-5 text-4xl font-semibold tracking-tight text-balance sm:text-5xl"
           style={{ animationDelay: "0.4s" }}
         >
-          Half price on every milkshake
+          Your first milkshake is on us
         </h1>
 
         <p
           className="rise mt-5 max-w-md text-base leading-7 text-muted"
           style={{ animationDelay: "0.55s" }}
         >
-          We open soon, and the first day is on us — near enough. Leave your
-          number and we&apos;ll hand you a code for {LAUNCH_DISCOUNT_LABEL} every
-          milkshake we make, all day.
+          We open soon, and the milkshakes are on us for{" "}
+          {LAUNCH_CAP_LABEL}. Leave yours and we&apos;ll hand you a code for one
+          free milkshake — any one on the menu.
         </p>
 
         <div className="rise mt-10 w-full" style={{ animationDelay: "0.7s" }}>
@@ -104,9 +104,10 @@ export default function LaunchPage() {
           className="rise mt-14 max-w-md text-xs leading-5 text-muted/70"
           style={{ animationDelay: "1s" }}
         >
-          One code per number, valid on launch day only, in store. Milkshakes
-          only — the rest of the menu is at its usual price. We&apos;ll only use
-          your number to tell you when we open.
+          One code per number, one free milkshake per code, on launch day, in
+          store — open to{" "}
+          {LAUNCH_CAP_LABEL}. The rest of the menu is at its usual price, and
+          we&apos;ll only use your number to tell you when we open.
         </p>
       </div>
     </main>

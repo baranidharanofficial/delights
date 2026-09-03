@@ -4,7 +4,7 @@ import { FieldValue, Timestamp, type DocumentSnapshot } from "firebase-admin/fir
 
 import { COLLECTIONS, getDb } from "@/lib/firebase/admin";
 
-import { LAUNCH_DISCOUNT_PERCENT } from "./launch-offer";
+import { LAUNCH_DISCOUNT_PERCENT, MAX_SIGNUPS } from "./launch-offer";
 
 /**
  * The launch-day milkshake offer.
@@ -15,19 +15,6 @@ import { LAUNCH_DISCOUNT_PERCENT } from "./launch-offer";
  * gains nothing that entering any number of your own would not also give you.
  * That is why nothing below treats it as a secret.
  */
-
-/**
- * Signups the shop will take.
- *
- * A hundred is the size of the offer itself — how many discounted milkshakes
- * the shop is willing to make on the day — rather than the anti-abuse ceiling
- * this number used to be. It still serves as that ceiling too: this is the one
- * write path on the site with no login standing in front of it.
- *
- * A number already on the list keeps getting its code back after the cap is
- * reached; only numbers that are new to the list are turned away.
- */
-export const MAX_SIGNUPS = 100;
 
 /**
  * Ten digits, stored with the country code and without punctuation.
@@ -140,7 +127,7 @@ export async function claimLaunchOffer(input: string): Promise<ClaimResult> {
     if (atCapacity) {
       return {
         ok: false,
-        error: "The launch list is full. Come by on the day anyway — we'll be baking.",
+        error: `All ${MAX_SIGNUPS} free milkshakes are taken. Come by on the day anyway — we'll be making plenty.`,
       };
     }
 
