@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Coming Soon",
-  description: "Something new is on the way. Stay tuned.",
+  title: "Delights",
+  description: "Milkshakes, snacks and fresh-baked everything.",
 };
 
 /**

@@ -130,9 +130,6 @@ export default async function MenuPage() {
         <p className="mt-8 text-xs font-medium tracking-[0.35em] text-accent-strong uppercase">
           Our menu
         </p>
-        <h1 className="mt-4 text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
-          Baked fresh, every day
-        </h1>
       </header>
 
       {sections.length === 0 ? (

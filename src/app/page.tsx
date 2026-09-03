@@ -1,5 +1,5 @@
 import Image from "next/image";
-import NotifyForm from "./notify-form";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -30,30 +30,39 @@ export default function Home() {
           />
         </div>
 
-        <p
-          className="rise mt-14 text-xs font-medium tracking-[0.35em] text-accent-strong uppercase"
+        <h1
+          className="rise mt-10 text-5xl font-semibold tracking-tight sm:text-6xl"
           style={{ animationDelay: "0.25s" }}
         >
-          Coming soon
-        </p>
-
-        <h1
-          className="rise mt-5 text-4xl font-semibold tracking-tight text-balance sm:text-5xl"
-          style={{ animationDelay: "0.4s" }}
-        >
-          Something new is on the way
+          Delights
         </h1>
 
         <p
-          className="rise mt-5 max-w-md text-base leading-7 text-muted"
-          style={{ animationDelay: "0.55s" }}
+          className="rise mt-5 max-w-sm text-base leading-7 text-muted"
+          style={{ animationDelay: "0.4s" }}
         >
-          We&apos;re putting the finishing touches on something we can&apos;t
-          wait to share. Leave your email and be the first to know.
+          Milkshakes, snacks and fresh-baked everything.
         </p>
 
-        <div className="rise mt-10 w-full" style={{ animationDelay: "0.7s" }}>
-          <NotifyForm />
+        {/* Stacked full-width on a phone, side by side once there is room for
+            both to stay comfortably tappable. The offer is the filled one: it
+            is the errand with a deadline on it, and the menu is always there. */}
+        <div
+          className="rise mt-11 flex w-full max-w-sm flex-col gap-3 sm:w-auto sm:flex-row sm:gap-4"
+          style={{ animationDelay: "0.55s" }}
+        >
+          <Link
+            href="/menu"
+            className="rounded-full border border-line bg-surface px-7 py-3 text-sm font-medium text-foreground backdrop-blur-sm transition-all hover:border-accent/60 active:scale-[0.98]"
+          >
+            Go to Menu
+          </Link>
+          <Link
+            href="/launch"
+            className="rounded-full bg-accent-strong px-7 py-3 text-sm font-medium text-background transition-all hover:brightness-110 active:scale-[0.98]"
+          >
+            Get Launch offer
+          </Link>
         </div>
       </div>
 
