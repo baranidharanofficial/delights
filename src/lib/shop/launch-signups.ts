@@ -4,6 +4,7 @@ import { FieldValue, Timestamp, type DocumentSnapshot } from "firebase-admin/fir
 
 import { COLLECTIONS, getDb } from "@/lib/firebase/admin";
 
+import { formatIstTime } from "./dates";
 import { LAUNCH_DISCOUNT_PERCENT, MAX_SIGNUPS } from "./launch-offer";
 
 /**
@@ -84,6 +85,21 @@ function readCode(snapshot: DocumentSnapshot): string | null {
   return typeof code === "string" && code !== "" ? code : null;
 }
 
+/** Epoch milliseconds, or `null` for a field that is absent or still pending. */
+function readMillis(value: unknown): number | null {
+  return value instanceof Timestamp ? value.toMillis() : null;
+}
+
+/** Whoever was signed in at the till, as it was written. */
+function readActor(value: unknown): Actor | null {
+  if (typeof value !== "object" || value === null) return null;
+
+  const { email, name } = value as { email?: unknown; name?: unknown };
+  if (typeof email !== "string" || email === "") return null;
+
+  return { email, name: typeof name === "string" ? name : null };
+}
+
 /**
  * The signup, and the code that comes with it.
  *
@@ -143,18 +159,28 @@ export async function claimLaunchOffer(input: string): Promise<ClaimResult> {
   });
 }
 
+/** Whoever was signed in at the till when a code was handed over. */
+export type Actor = { email: string; name: string | null };
+
 export type LaunchSignup = {
   phone: string;
   code: string;
   claimedAtMs: number;
+  /** `null` until the milkshake is actually handed over. */
+  redeemedAtMs: number | null;
+  redeemedBy: Actor | null;
 };
+
+export type RedemptionResult = { ok: true } | { ok: false; error: string };
 
 /**
  * Every signup, newest first — for whoever works the counter on the day.
  *
- * Nothing on the public site reads this; it is here so the list is one import
- * away when the offer needs a screen behind it, rather than something that has
- * to be dug out of the Firebase console.
+ * Nothing on the public site reads this; it backs `/pos/launch`. The whole list
+ * comes back in one read rather than being searched in Firestore, because
+ * `MAX_SIGNUPS` bounds it at a hundred rows: cheaper than a query, no index to
+ * keep, and it lets the screen filter as the cashier types instead of once per
+ * keystroke over the network.
  */
 export async function getLaunchSignups(): Promise<LaunchSignup[]> {
   const snapshot = await getDb()
@@ -173,8 +199,79 @@ export async function getLaunchSignups(): Promise<LaunchSignup[]> {
       {
         phone: doc.id,
         code,
-        claimedAtMs: claimedAt instanceof Timestamp ? claimedAt.toMillis() : 0,
+        claimedAtMs: readMillis(claimedAt) ?? 0,
+        redeemedAtMs: readMillis(doc.data()?.redeemedAt),
+        redeemedBy: readActor(doc.data()?.redeemedBy),
       },
     ];
   });
+}
+
+/**
+ * Marks a code as used, once.
+ *
+ * This guard is the reason the POS screen exists. The offer is one free
+ * milkshake per code and nothing else in the system enforces that — the code is
+ * not a secret, and until now handing one over left no trace. Reading and
+ * writing inside a transaction is what makes a double-tap, or a second till,
+ * lose the race rather than give away a second milkshake.
+ */
+export async function redeemLaunchOffer(
+  phone: string,
+  by: Actor,
+): Promise<RedemptionResult> {
+  const db = getDb();
+  const ref = db.collection(COLLECTIONS.launchSignups).doc(phone);
+
+  return db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(ref);
+    if (!snapshot.exists) {
+      return { ok: false, error: "That code is not on the list." };
+    }
+
+    const already = readMillis(snapshot.data()?.redeemedAt);
+    if (already !== null) {
+      return {
+        ok: false,
+        error: `Already redeemed at ${formatIstTime(already)}.`,
+      };
+    }
+
+    transaction.update(ref, {
+      redeemedAt: FieldValue.serverTimestamp(),
+      redeemedBy: { email: by.email, name: by.name },
+    });
+
+    return { ok: true };
+  });
+}
+
+/**
+ * Puts a code back to unused.
+ *
+ * A counter needs this: one gets tapped against the wrong customer, or the
+ * milkshake never gets made. The fields are deleted rather than nulled so an
+ * un-redeemed signup is indistinguishable from one that was never touched —
+ * this is a hundred-code promotion, and the order itself is what the day is
+ * audited on.
+ */
+export async function unredeemLaunchOffer(
+  phone: string,
+): Promise<RedemptionResult> {
+  const ref = getDb().collection(COLLECTIONS.launchSignups).doc(phone);
+
+  const snapshot = await ref.get();
+  if (!snapshot.exists) {
+    return { ok: false, error: "That code is not on the list." };
+  }
+  if (readMillis(snapshot.data()?.redeemedAt) === null) {
+    return { ok: false, error: "That code has not been redeemed." };
+  }
+
+  await ref.update({
+    redeemedAt: FieldValue.delete(),
+    redeemedBy: FieldValue.delete(),
+  });
+
+  return { ok: true };
 }

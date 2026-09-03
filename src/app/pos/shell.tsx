@@ -14,7 +14,10 @@ import { signOut } from "./actions";
 const GROUPS = [
   {
     label: "Counter",
-    tabs: [{ href: "/pos", label: "Terminal" }],
+    tabs: [
+      { href: "/pos", label: "Terminal" },
+      { href: "/pos/launch", label: "Launch codes" },
+    ],
   },
   {
     label: "Kitchen",
