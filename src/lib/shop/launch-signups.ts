@@ -19,12 +19,15 @@ import { LAUNCH_DISCOUNT_PERCENT } from "./launch-offer";
 /**
  * Signups the shop will take.
  *
- * This is the one write path on the site that no login stands in front of, so
- * it needs a ceiling. Ten thousand is far past what a single shop's opening day
- * can serve — a flood beyond it is abuse, not interest, and a number already on
- * the list still gets its code back after the cap is reached.
+ * A hundred is the size of the offer itself — how many discounted milkshakes
+ * the shop is willing to make on the day — rather than the anti-abuse ceiling
+ * this number used to be. It still serves as that ceiling too: this is the one
+ * write path on the site with no login standing in front of it.
+ *
+ * A number already on the list keeps getting its code back after the cap is
+ * reached; only numbers that are new to the list are turned away.
  */
-export const MAX_SIGNUPS = 10_000;
+export const MAX_SIGNUPS = 100;
 
 /**
  * Ten digits, stored with the country code and without punctuation.
@@ -105,8 +108,13 @@ function readCode(snapshot: DocumentSnapshot): string | null {
  * The capacity count sits outside the transaction on purpose. A count read
  * inside one takes a lock on every document it matched — the whole collection,
  * here — which would put every simultaneous signup into a queue behind every
- * other. Outside, it is a stale number, and a stale number is fine for a
- * ceiling that exists to stop a flood rather than to be exact at the boundary.
+ * other. Outside, it is a stale number, so claims arriving together right at
+ * the boundary can settle a few past `MAX_SIGNUPS`.
+ *
+ * That is the accepted trade rather than an oversight. An exact cap wants a
+ * single counter document incremented inside the transaction, which locks one
+ * document instead of the collection; worth adding the day the overshoot costs
+ * more than the handful of extra milkshakes it stands for.
  */
 export async function claimLaunchOffer(input: string): Promise<ClaimResult> {
   const phone = normalizePhone(input);
