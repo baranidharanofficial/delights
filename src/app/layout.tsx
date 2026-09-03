@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Delights",
-  description: "Milkshakes, snacks and fresh-baked everything.",
+  description: "Milkshakes, snacks and everything.",
 };
 
 /**
