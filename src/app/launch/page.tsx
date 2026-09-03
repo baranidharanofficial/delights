@@ -75,7 +75,7 @@ export default function LaunchPage() {
         >
           We open soon, and the milkshakes are on us for{" "}
           {LAUNCH_CAP_LABEL}. Leave yours and we&apos;ll hand you a code for one
-          free milkshake — any one on the menu.
+          free milkshake any one on the menu.
         </p>
 
         <div className="rise mt-10 w-full" style={{ animationDelay: "0.7s" }}>
