@@ -69,7 +69,14 @@ export default function PosShell({
         className="flex shrink-0 flex-col gap-3 border-b border-white/10 px-4 py-3 md:sticky md:top-0 md:h-dvh md:w-48 md:gap-6 md:overflow-y-auto md:border-r md:border-b-0 md:px-3 md:py-5 lg:w-52"
       >
         <div className="flex items-center gap-3 md:px-2">
-          <Image src="/logo.png" alt="Delights" width={22} height={38} priority />
+          <Image
+            src="/Logo2.png"
+            alt="Delights"
+            width={32}
+            height={32}
+            priority
+            className="rounded-lg"
+          />
           <div>
             <p className="text-sm font-semibold tracking-tight">Delights</p>
             <p className="text-[0.6rem] font-medium tracking-[0.25em] text-accent uppercase">

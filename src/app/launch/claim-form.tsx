@@ -20,7 +20,7 @@ function ClaimButton() {
     <button
       type="submit"
       disabled={pending}
-      className="shrink-0 rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-background transition-all hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
+      className="shrink-0 rounded-full bg-accent-strong px-5 py-2.5 text-sm font-medium text-background transition-all hover:brightness-110 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
     >
       {pending ? "Sending…" : "Get my code"}
     </button>
@@ -31,13 +31,13 @@ function ClaimButton() {
 function Claimed({ state }: { state: Extract<ClaimState, { status: "claimed" }> }) {
   return (
     <div
-      className="mx-auto w-full max-w-md rounded-2xl border border-accent/30 bg-accent/[0.07] p-6 text-center"
+      className="mx-auto w-full max-w-md rounded-2xl border border-accent/30 bg-accent/[0.09] p-6 text-center"
       // Announced rather than silently swapped in: the form it replaces is
       // where the keyboard focus still is.
       role="status"
       aria-live="polite"
     >
-      <p className="text-xs font-medium tracking-[0.25em] text-accent uppercase">
+      <p className="text-xs font-medium tracking-[0.25em] text-accent-strong uppercase">
         {state.returning ? "Already yours" : "You're in"}
       </p>
 
@@ -65,7 +65,7 @@ export default function ClaimForm() {
   return (
     <div className="mx-auto w-full max-w-md">
       <form action={action} className="flex flex-col gap-3 sm:gap-2">
-        <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] p-1.5 backdrop-blur-sm transition-colors focus-within:border-accent/40">
+        <div className="flex items-center gap-2 rounded-full border border-line bg-surface p-1.5 backdrop-blur-sm transition-colors focus-within:border-accent/60">
           <span
             aria-hidden
             className="shrink-0 pl-4 text-sm text-muted select-none"
@@ -102,7 +102,7 @@ export default function ClaimForm() {
       {state.status === "error" && (
         <p
           role="alert"
-          className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-center text-xs text-red-300"
+          className="mt-3 rounded-lg border border-red-800/25 bg-red-800/10 px-3 py-2 text-center text-xs text-red-800"
         >
           {state.message}
         </p>

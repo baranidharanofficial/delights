@@ -1,17 +1,66 @@
 @import "tailwindcss";
 
+/*
+ * The storefront theme: the cream out of the logo used as the page itself, and
+ * the logo's red as the accent laid over it.
+ *
+ * Two reds rather than one. `--accent` is the brand exactly as it appears in
+ * the mark, and it holds up as a fill, a hairline or a display-sized word — but
+ * against cream it only reaches 3.5:1, and this design leans hard on small
+ * uppercase labels and prices. `--accent-strong` is the same red taken down
+ * until it clears 4.5:1 on the background, close enough to sit beside the logo
+ * tile without reading as a second colour.
+ */
 :root {
+  --background: #feebbf;
+  --foreground: #33210e;
+  --accent: #ef3000;
+  --accent-strong: #a82200;
+  --muted: #7a6440;
+  /* Hairlines and card fills are the ink and the paper at low alpha rather
+     than fixed greys, so they stay warm against the cream. */
+  --line: rgba(51, 33, 14, 0.16);
+  --surface: rgba(255, 255, 255, 0.45);
+  --glow: rgba(239, 48, 0, 0.14);
+}
+
+/*
+ * The terminal stays dark — it is read for a whole shift, and a cream screen at
+ * that size glares — so the only thing the brand carries across is the accent,
+ * and there the accent is the cream itself, which is also what `Logo2.png` is
+ * cut from.
+ *
+ * The class goes on the POS layout's wrapper. The `:has()` arm lifts the same
+ * variables to `:root`, which is what paints `body` and the strip of page
+ * beyond it that a rubber-band scroll exposes. The wrapper repeats `background`
+ * and `color` itself rather than relying on that arm, so a browser without
+ * `:has()` still gets the whole dark terminal and loses only the outer strip.
+ */
+.theme-dark,
+:root:has(.theme-dark) {
   --background: #0a0908;
   --foreground: #ece7df;
-  --accent: #deb887;
+  --accent: #feebbf;
+  --accent-strong: #feebbf;
   --muted: #8a8378;
+  --line: rgba(255, 255, 255, 0.1);
+  --surface: rgba(255, 255, 255, 0.03);
+  --glow: rgba(254, 235, 191, 0.07);
+}
+
+.theme-dark {
+  background: var(--background);
+  color: var(--foreground);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
   --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-surface: var(--surface);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

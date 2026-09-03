@@ -8,7 +8,7 @@ export default function NotifyForm() {
 
   if (submitted) {
     return (
-      <p className="mx-auto flex h-13 max-w-md items-center justify-center rounded-full border border-accent/30 bg-accent/10 px-6 text-sm text-accent">
+      <p className="mx-auto flex h-13 max-w-md items-center justify-center rounded-full border border-accent/30 bg-accent/10 px-6 text-sm text-accent-strong">
         You&apos;re on the list — we&apos;ll be in touch soon.
       </p>
     );
@@ -16,7 +16,7 @@ export default function NotifyForm() {
 
   return (
     <form
-      className="mx-auto flex w-full max-w-md items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] p-1.5 backdrop-blur-sm transition-colors focus-within:border-accent/40"
+      className="mx-auto flex w-full max-w-md items-center gap-2 rounded-full border border-line bg-surface p-1.5 backdrop-blur-sm transition-colors focus-within:border-accent/60"
       onSubmit={(e) => {
         e.preventDefault();
         if (email.trim()) setSubmitted(true);
@@ -33,7 +33,7 @@ export default function NotifyForm() {
       />
       <button
         type="submit"
-        className="shrink-0 rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-background transition-all hover:brightness-110 active:scale-[0.98]"
+        className="shrink-0 rounded-full bg-accent-strong px-5 py-2.5 text-sm font-medium text-background transition-all hover:brightness-110 active:scale-[0.98]"
       >
         Notify me
       </button>

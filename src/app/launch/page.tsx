@@ -36,27 +36,27 @@ export default function LaunchPage() {
           announcement links to, and it should read as the same shop. */}
       <div
         aria-hidden
-        className="glow-pulse pointer-events-none absolute top-0 left-1/2 h-[36rem] w-[36rem] -translate-x-1/2 -translate-y-1/3 rounded-full bg-accent/10 blur-[120px]"
+        className="glow-pulse pointer-events-none absolute top-0 left-1/2 h-[36rem] w-[36rem] -translate-x-1/2 -translate-y-1/3 rounded-full bg-accent/15 blur-[120px]"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(222,184,135,0.06),transparent_60%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,var(--glow),transparent_60%)]"
       />
 
       <div className="relative flex w-full max-w-xl flex-1 flex-col items-center justify-center text-center">
         <div className="rise" style={{ animationDelay: "0.1s" }}>
           <Image
-            src="/logo.png"
+            src="/Logo.png"
             alt="Logo"
-            width={64}
-            height={111}
+            width={96}
+            height={96}
             priority
-            className="drop-shadow-[0_0_40px_rgba(222,184,135,0.25)]"
+            className="rounded-3xl shadow-[0_12px_32px_-10px_rgba(239,48,0,0.5)]"
           />
         </div>
 
         <p
-          className="rise mt-12 text-xs font-medium tracking-[0.35em] text-accent uppercase"
+          className="rise mt-12 text-xs font-medium tracking-[0.35em] text-accent-strong uppercase"
           style={{ animationDelay: "0.25s" }}
         >
           Launch day offer
@@ -90,7 +90,7 @@ export default function LaunchPage() {
             <li key={step.title}>
               <span
                 aria-hidden
-                className="mx-auto flex h-7 w-7 items-center justify-center rounded-full border border-accent/30 text-xs text-accent"
+                className="mx-auto flex h-7 w-7 items-center justify-center rounded-full border border-accent/40 text-xs text-accent-strong"
               >
                 {index + 1}
               </span>

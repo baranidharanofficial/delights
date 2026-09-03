@@ -42,12 +42,12 @@ export default async function PosLoginPage({
 
       <div className="rise relative w-full max-w-sm rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center backdrop-blur-sm">
         <Image
-          src="/logo.png"
+          src="/Logo2.png"
           alt="Delights"
-          width={46}
-          height={80}
+          width={64}
+          height={64}
           priority
-          className="mx-auto"
+          className="mx-auto rounded-2xl shadow-[0_0_36px_-8px_rgba(254,235,191,0.35)]"
         />
 
         <p className="mt-8 text-xs font-medium tracking-[0.3em] text-accent uppercase">

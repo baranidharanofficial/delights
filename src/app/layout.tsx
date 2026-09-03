@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -15,6 +15,19 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Coming Soon",
   description: "Something new is on the way. Stay tuned.",
+};
+
+/**
+ * The cream the storefront is painted in, handed to the browser as well, so the
+ * address bar and the task switcher continue the page instead of framing it.
+ *
+ * `colorScheme` is what stops the UA from styling a form control or a scrollbar
+ * for a dark page on top of a light one. The POS layout replaces both fields —
+ * viewport exports merge from the root down, and the deepest segment wins.
+ */
+export const viewport: Viewport = {
+  themeColor: "#FEEBBF",
+  colorScheme: "light",
 };
 
 export default function RootLayout({

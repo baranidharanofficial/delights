@@ -80,9 +80,9 @@ function Thumbnail({ item }: { item: MenuItem }) {
     return (
       <div
         aria-hidden
-        className="flex h-40 w-full items-center justify-center border-b border-white/5 bg-[radial-gradient(ellipse_at_center,rgba(222,184,135,0.10),transparent_70%)]"
+        className="flex h-40 w-full items-center justify-center border-b border-line bg-[radial-gradient(ellipse_at_center,var(--glow),transparent_70%)]"
       >
-        <span className="text-5xl font-semibold text-accent/20 select-none">
+        <span className="text-5xl font-semibold text-accent/25 select-none">
           {initial(item.name)}
         </span>
       </div>
@@ -115,19 +115,19 @@ export default async function MenuPage() {
     <main className="relative flex flex-1 flex-col">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-[32rem] bg-[radial-gradient(ellipse_at_top,rgba(222,184,135,0.08),transparent_65%)]"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[32rem] bg-[radial-gradient(ellipse_at_top,var(--glow),transparent_65%)]"
       />
 
       <header className="relative mx-auto flex w-full max-w-5xl flex-col items-center px-6 pt-16 text-center">
         <Image
-          src="/logo.png"
+          src="/Logo.png"
           alt=""
-          width={48}
-          height={83}
+          width={72}
+          height={72}
           priority
-          className="drop-shadow-[0_0_30px_rgba(222,184,135,0.2)]"
+          className="rounded-2xl shadow-[0_10px_26px_-10px_rgba(239,48,0,0.5)]"
         />
-        <p className="mt-8 text-xs font-medium tracking-[0.35em] text-accent uppercase">
+        <p className="mt-8 text-xs font-medium tracking-[0.35em] text-accent-strong uppercase">
           Our menu
         </p>
         <h1 className="mt-4 text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
@@ -147,7 +147,7 @@ export default async function MenuPage() {
               menu — a strip floating at the content width reads as a stray card. */}
           <nav
             aria-label="Menu sections"
-            className="sticky top-0 z-10 mt-12 border-b border-white/10 bg-background/85 backdrop-blur"
+            className="sticky top-0 z-10 mt-12 border-b border-line bg-background/85 backdrop-blur"
           >
             <div className="mx-auto w-full max-w-5xl overflow-x-auto px-6 py-3">
               <ul className="flex gap-2">
@@ -155,7 +155,7 @@ export default async function MenuPage() {
                   <li key={category.id}>
                     <a
                       href={`#category-${category.id}`}
-                      className="block rounded-full border border-white/10 px-4 py-1.5 text-sm whitespace-nowrap text-muted transition-colors hover:border-accent/40 hover:text-foreground"
+                      className="block rounded-full border border-line px-4 py-1.5 text-sm whitespace-nowrap text-muted transition-colors hover:border-accent/60 hover:text-foreground"
                     >
                       {category.name}
                     </a>
@@ -173,7 +173,7 @@ export default async function MenuPage() {
                 // Clears the bar the link just scrolled underneath.
                 className="mt-16 scroll-mt-20"
               >
-                <h2 className="text-xs font-medium tracking-[0.3em] text-accent uppercase">
+                <h2 className="text-xs font-medium tracking-[0.3em] text-accent-strong uppercase">
                   {category.name}
                 </h2>
 
@@ -184,7 +184,7 @@ export default async function MenuPage() {
                     return (
                       <li
                         key={item.id}
-                        className={`flex flex-col overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] ${
+                        className={`flex flex-col overflow-hidden rounded-xl border border-line bg-surface ${
                           soldOut ? "opacity-50" : ""
                         }`}
                       >
@@ -199,7 +199,7 @@ export default async function MenuPage() {
                               Sold out
                             </span>
                           ) : (
-                            <span className="text-base whitespace-nowrap text-accent">
+                            <span className="text-base whitespace-nowrap text-accent-strong">
                               {priceLabel(item.price)}
                             </span>
                           )}
