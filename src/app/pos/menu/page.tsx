@@ -1,11 +1,11 @@
-import { requirePosUser } from "@/lib/auth/session";
+import { requireSection } from "@/lib/auth/session";
 import { getMenu } from "@/lib/shop/menu";
 
 import PosShell from "../shell";
 import MenuEditor from "./menu-editor";
 
 export default async function MenuPage() {
-  const user = await requirePosUser();
+  const user = await requireSection("/pos/menu");
   const { categories, items } = await getMenu();
 
   return (

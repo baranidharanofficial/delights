@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requirePosUser } from "@/lib/auth/session";
+import { requireSection } from "@/lib/auth/session";
 import { isBusinessDate } from "@/lib/shop/dates";
 import {
   clearDoneTasks,
@@ -23,7 +23,7 @@ function text(formData: FormData, field: string): string {
 }
 
 async function actor(): Promise<Actor> {
-  const user = await requirePosUser();
+  const user = await requireSection("/pos/tasks");
   return { email: user.email, name: user.name };
 }
 
@@ -78,7 +78,7 @@ export async function saveTask(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  await requirePosUser();
+  await requireSection("/pos/tasks");
 
   const id = text(formData, "id");
   if (id === "") return { error: "Nothing to save." };
@@ -97,7 +97,7 @@ export async function removeTask(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  await requirePosUser();
+  await requireSection("/pos/tasks");
 
   const id = text(formData, "id");
   if (id === "") return { error: "Nothing to delete." };
@@ -142,7 +142,7 @@ export async function repositionTask(
  * there is no failure worth reporting back into a form.
  */
 export async function clearDone(): Promise<void> {
-  await requirePosUser();
+  await requireSection("/pos/tasks");
 
   await clearDoneTasks();
   revalidatePath("/pos/tasks");

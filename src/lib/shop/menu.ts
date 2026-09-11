@@ -104,7 +104,7 @@ export async function getMenu(): Promise<{
 }
 
 // --- Writes -----------------------------------------------------------------
-// Callers are Server Actions that have already run `requirePosUser()`.
+// Callers are Server Actions that have already run `requireSection()`.
 
 export type MenuItemInput = {
   name: string;

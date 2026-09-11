@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { LOGIN_PATH } from "@/lib/auth/config";
-import { destroySession, requirePosUser } from "@/lib/auth/session";
+import { destroySession, requireSection } from "@/lib/auth/session";
 import { placeOrder, type PlaceOrderResult } from "@/lib/shop/orders";
 import type { OrderRequestLine, PaymentMethod } from "@/lib/shop/types";
 
@@ -24,7 +24,7 @@ export async function checkout(
   lines: OrderRequestLine[],
   method: PaymentMethod,
 ): Promise<PlaceOrderResult> {
-  const user = await requirePosUser();
+  const user = await requireSection("/pos");
 
   const result = await placeOrder(lines, method, {
     email: user.email,

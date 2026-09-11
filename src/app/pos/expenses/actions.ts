@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requirePosUser } from "@/lib/auth/session";
+import { requireSection } from "@/lib/auth/session";
 import { isBusinessDate } from "@/lib/shop/dates";
 import {
   createExpense,
@@ -22,7 +22,7 @@ function text(formData: FormData, field: string): string {
 }
 
 async function actor(): Promise<Actor> {
-  const user = await requirePosUser();
+  const user = await requireSection("/pos/expenses");
   return { email: user.email, name: user.name };
 }
 
@@ -94,7 +94,7 @@ export async function saveExpense(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  await requirePosUser();
+  await requireSection("/pos/expenses");
 
   const id = text(formData, "id");
   if (id === "") return { error: "Nothing to save." };
@@ -113,7 +113,7 @@ export async function removeExpense(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  await requirePosUser();
+  await requireSection("/pos/expenses");
 
   const id = text(formData, "id");
   if (id === "") return { error: "Nothing to delete." };

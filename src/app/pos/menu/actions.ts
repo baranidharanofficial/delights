@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requirePosUser } from "@/lib/auth/session";
+import { requireSection } from "@/lib/auth/session";
 import {
   countItemsInCategory,
   createCategory,
@@ -73,7 +73,7 @@ export async function saveMenuItem(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  await requirePosUser();
+  await requireSection("/pos/menu");
 
   const categories = await getCategories();
   const parsed = parseItemForm(
@@ -101,7 +101,7 @@ export async function removeMenuItem(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  await requirePosUser();
+  await requireSection("/pos/menu");
 
   const id = text(formData, "id");
   if (id === "") return { error: "Nothing to delete." };
@@ -115,7 +115,7 @@ export async function saveCategory(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  await requirePosUser();
+  await requireSection("/pos/menu");
 
   const name = text(formData, "name");
   if (name === "") return { error: "Category name is required." };
@@ -136,7 +136,7 @@ export async function removeCategory(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  await requirePosUser();
+  await requireSection("/pos/menu");
 
   const id = text(formData, "id");
   if (id === "") return { error: "Nothing to delete." };

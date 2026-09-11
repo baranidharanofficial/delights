@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requirePosUser } from "@/lib/auth/session";
+import { requireSection } from "@/lib/auth/session";
 import { markLine, markOrder, type Actor } from "@/lib/shop/kitchen";
 
 import { EMPTY_FORM_STATE, type FormState } from "../form-state";
@@ -13,7 +13,7 @@ function text(formData: FormData, field: string): string {
 }
 
 async function actor(): Promise<Actor> {
-  const user = await requirePosUser();
+  const user = await requireSection("/pos/kitchen");
   return { email: user.email, name: user.name };
 }
 

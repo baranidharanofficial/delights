@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { requirePosUser } from "@/lib/auth/session";
+import { requireSection } from "@/lib/auth/session";
 import {
   businessDate,
   formatBusinessDate,
@@ -20,7 +20,7 @@ export default async function ReportsPage({
 }: {
   searchParams: Promise<{ date?: string }>;
 }) {
-  const user = await requirePosUser();
+  const user = await requireSection("/pos/reports");
 
   const { date: requested } = await searchParams;
   // An unparseable ?date= falls back to today rather than erroring — this screen

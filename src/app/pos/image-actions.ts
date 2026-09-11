@@ -2,10 +2,20 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requirePosUser } from "@/lib/auth/session";
+import { requireSection } from "@/lib/auth/session";
 import { clearImage, setImage, type ImageResult } from "@/lib/shop/images";
 
-import { isImageTarget } from "./form-state";
+import { isImageTarget, type ImageTarget } from "./form-state";
+
+/**
+ * Pictures are attached from two different screens, so the gate depends on
+ * which collection is being written to rather than on where the call claims to
+ * have come from.
+ */
+const SECTION: Record<ImageTarget, "/pos/menu" | "/pos/inventory"> = {
+  menuItems: "/pos/menu",
+  materials: "/pos/inventory",
+};
 
 function refresh() {
   // A picture can show up on any of these, so none of them may keep a stale copy.
@@ -18,13 +28,15 @@ function refresh() {
 }
 
 export async function saveImage(formData: FormData): Promise<ImageResult> {
-  await requirePosUser();
-
   const target = formData.get("target");
   const id = formData.get("id");
   const file = formData.get("file");
 
+  // Validated first only because the target is what names the gate. Nothing is
+  // read or written before `requireSection` has run.
   if (!isImageTarget(target)) return { ok: false, error: "Unknown target." };
+  await requireSection(SECTION[target]);
+
   if (typeof id !== "string" || id === "") {
     return { ok: false, error: "Save the record before adding a picture." };
   }
@@ -36,12 +48,12 @@ export async function saveImage(formData: FormData): Promise<ImageResult> {
 }
 
 export async function dropImage(formData: FormData): Promise<ImageResult> {
-  await requirePosUser();
-
   const target = formData.get("target");
   const id = formData.get("id");
 
   if (!isImageTarget(target)) return { ok: false, error: "Unknown target." };
+  await requireSection(SECTION[target]);
+
   if (typeof id !== "string" || id === "") {
     return { ok: false, error: "Nothing to remove." };
   }

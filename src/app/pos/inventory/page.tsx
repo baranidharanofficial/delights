@@ -1,4 +1,4 @@
-import { requirePosUser } from "@/lib/auth/session";
+import { requireSection } from "@/lib/auth/session";
 import { getRecentAdjustments } from "@/lib/shop/finished-stock";
 import { getMaterials, getRecentMovements } from "@/lib/shop/materials";
 import { getMenuItems } from "@/lib/shop/menu";
@@ -7,7 +7,7 @@ import PosShell from "../shell";
 import InventoryScreen from "./inventory-screen";
 
 export default async function InventoryPage() {
-  const user = await requirePosUser();
+  const user = await requireSection("/pos/inventory");
   const [items, adjustments, materials, movements] = await Promise.all([
     getMenuItems(),
     getRecentAdjustments(),

@@ -11,7 +11,7 @@ import { requireEnv } from "@/lib/auth/config";
  * The POS authenticates with its own Google OAuth session (see
  * `lib/auth/session.ts`), not Firebase Auth, so there is no Firebase identity to
  * hang security rules off. Every read and write therefore goes through the
- * server, where `requirePosUser()` is the single authorization gate and the
+ * server, where `requireSection()` is the single authorization gate and the
  * service account never leaves the machine. `firestore.rules` denies all client
  * access outright — the Admin SDK bypasses rules by design.
  */

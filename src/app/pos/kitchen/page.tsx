@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { requirePosUser } from "@/lib/auth/session";
+import { requireSection } from "@/lib/auth/session";
 import {
   businessDate,
   formatBusinessDate,
@@ -24,7 +24,7 @@ export default async function KitchenPage({
 }: {
   searchParams: Promise<{ date?: string }>;
 }) {
-  const user = await requirePosUser();
+  const user = await requireSection("/pos/kitchen");
 
   const { date: requested } = await searchParams;
   // A bad ?date= falls back to today rather than erroring. The pass is the

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requirePosUser } from "@/lib/auth/session";
+import { requireSection } from "@/lib/auth/session";
 import { voidOrder } from "@/lib/shop/orders";
 
 import { EMPTY_FORM_STATE, type FormState } from "../form-state";
@@ -11,7 +11,7 @@ export async function voidSale(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const user = await requirePosUser();
+  const user = await requireSection("/pos/reports");
 
   const orderId = formData.get("orderId");
   if (typeof orderId !== "string" || orderId === "") {

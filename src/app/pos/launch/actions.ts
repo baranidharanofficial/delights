@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requirePosUser } from "@/lib/auth/session";
+import { requireSection } from "@/lib/auth/session";
 import {
   redeemLaunchOffer,
   unredeemLaunchOffer,
@@ -25,7 +25,7 @@ export async function redeemCode(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const user = await requirePosUser();
+  const user = await requireSection("/pos/launch");
 
   const phone = phoneFrom(formData);
   if (phone === "") return { error: "Nothing to redeem." };
@@ -44,7 +44,7 @@ export async function undoRedeem(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  await requirePosUser();
+  await requireSection("/pos/launch");
 
   const phone = phoneFrom(formData);
   if (phone === "") return { error: "Nothing to undo." };

@@ -1,44 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { POS_ROLE_LABELS, sectionsFor, type PosTab } from "@/lib/auth/access";
 import type { PosUser } from "@/lib/auth/tokens";
 
 import { signOut } from "./actions";
 
-/**
- * The sections, grouped the way the shop thinks about them rather than in one
- * flat list. This many destinations is well past the point where a row of pills
- * reads as a set of choices — grouping is what makes the panel scannable
- * instead of just long.
- */
-const GROUPS = [
-  {
-    label: "Counter",
-    tabs: [
-      { href: "/pos", label: "Terminal" },
-      { href: "/pos/launch", label: "Launch codes" },
-    ],
-  },
-  {
-    label: "Kitchen",
-    tabs: [
-      { href: "/pos/kitchen", label: "Orders" },
-      { href: "/pos/menu", label: "Menu" },
-      { href: "/pos/inventory", label: "Inventory" },
-      { href: "/pos/production", label: "Production" },
-    ],
-  },
-  {
-    label: "Office",
-    tabs: [
-      { href: "/pos/expenses", label: "Expenses" },
-      { href: "/pos/reports", label: "Reports" },
-      { href: "/pos/tasks", label: "Board" },
-    ],
-  },
-] as const;
-
-export type PosTab = (typeof GROUPS)[number]["tabs"][number]["href"];
+export type { PosTab };
 
 /**
  * Shared chrome for the signed-in POS screens: a navigation panel down the
@@ -93,7 +61,10 @@ export default function PosShell({
             phone, a column of labelled groups once there is a panel to put
             them in. */}
         <nav className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-col md:gap-5 md:overflow-x-visible md:px-0 md:pb-0">
-          {GROUPS.map((group) => (
+          {/* Only what this user may actually open. The gate each screen runs
+              is what enforces that — this just avoids offering a door that
+              would shut in their face. */}
+          {sectionsFor(user.role).map((group) => (
             <div key={group.label} className="flex gap-1.5 md:flex-col md:gap-0.5">
               <p className="hidden px-3 pb-1 text-[0.6rem] font-medium tracking-[0.2em] text-muted/50 uppercase md:block">
                 {group.label}
@@ -130,6 +101,12 @@ export default function PosShell({
             </span>
             <span className="hidden text-xs text-muted sm:inline">
               {user.email}
+              {/* Says why the panel is shorter than someone might expect. */}
+              {user.role !== "owner" && (
+                <span className="ml-2 rounded-full border border-white/10 px-2 py-0.5 text-[0.65rem]">
+                  {POS_ROLE_LABELS[user.role]}
+                </span>
+              )}
             </span>
             <form action={signOut}>
               <button

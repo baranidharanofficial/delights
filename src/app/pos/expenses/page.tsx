@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { requirePosUser } from "@/lib/auth/session";
+import { requireSection } from "@/lib/auth/session";
 import {
   businessDate,
   businessMonth,
@@ -23,7 +23,7 @@ export default async function ExpensesPage({
 }: {
   searchParams: Promise<{ month?: string }>;
 }) {
-  const user = await requirePosUser();
+  const user = await requireSection("/pos/expenses");
 
   const { month: requested } = await searchParams;
   // An unparseable ?month= falls back to this month rather than erroring, the

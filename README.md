@@ -20,9 +20,18 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 ## POS terminal (`/pos`)
 
-`/pos` is a staff-only point-of-sale terminal behind Google SSO. Only the
-accounts on the allowlist can open it — by default just
-`baranidharanofficial@gmail.com`.
+`/pos` is a staff-only point-of-sale terminal behind Google SSO. Only
+allowlisted accounts can open it, and what they see depends on which list they
+are on:
+
+| Role | Sections | Default account |
+| --- | --- | --- |
+| Owner | Counter, Kitchen, Office | `baranidharanofficial@gmail.com` |
+| Counter & kitchen | Counter, Kitchen | `baranidharan958@gmail.com` |
+
+Office covers expenses, reports and the board — the money and the planning.
+Counter and kitchen cover the terminal, launch codes, orders, menu, inventory
+and production.
 
 ### One-time Google setup
 
@@ -32,7 +41,9 @@ accounts on the allowlist can open it — by default just
    - `http://localhost:3000/api/auth/google/callback` (development)
    - `https://<your-domain>/api/auth/google/callback` (production)
 3. On the **OAuth consent screen**, publishing status can stay *Testing* — just
-   add the allowlisted address as a test user.
+   add **every** allowlisted address as a test user, owners and counter staff
+   alike. An address missing from the test users is refused by Google before
+   this app ever sees it.
 
 ### Environment
 
@@ -48,7 +59,8 @@ openssl rand -base64 32   # value for SESSION_SECRET
 | `GOOGLE_CLIENT_ID` | yes | OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | yes | OAuth client secret |
 | `SESSION_SECRET` | yes | Signs the session cookie (32+ random bytes) |
-| `POS_ALLOWED_EMAILS` | no | Comma-separated allowlist; defaults to the owner account |
+| `POS_ALLOWED_EMAILS` | no | Comma-separated owners, office included; defaults to the owner account |
+| `POS_STAFF_EMAILS` | no | Comma-separated counter/kitchen accounts; no office access |
 | `APP_ORIGIN` | no | Public origin, when it differs from the request host |
 
 Rotating `SESSION_SECRET` invalidates every live POS session.
@@ -57,15 +69,19 @@ Rotating `SESSION_SECRET` invalidates every live POS session.
 
 | Layer | File | Role |
 | --- | --- | --- |
-| Proxy | [src/proxy.ts](src/proxy.ts) | Optimistic cookie check; bounces `/pos/*` to the login screen |
-| Session | [src/lib/auth/tokens.ts](src/lib/auth/tokens.ts) | HS256 session JWT, 12h TTL, allowlist re-checked on every read |
-| Gate | [src/lib/auth/session.ts](src/lib/auth/session.ts) | `requirePosUser()` — the authoritative check each `/pos` route calls |
+| Proxy | [src/proxy.ts](src/proxy.ts) | Optimistic cookie check; bounces `/pos/*` to the login screen, and refuses a section the role may not reach |
+| Rules | [src/lib/auth/access.ts](src/lib/auth/access.ts) | The one list of sections, the roles each admits, and the nav drawn from it |
+| Session | [src/lib/auth/tokens.ts](src/lib/auth/tokens.ts) | HS256 session JWT, 12h TTL; allowlist and role re-derived on every read, never carried in the token |
+| Gate | [src/lib/auth/session.ts](src/lib/auth/session.ts) | `requireSection()` — the authoritative check each `/pos` route and Server Action calls |
 | Sign in | [src/app/api/auth/google/login/route.ts](src/app/api/auth/google/login/route.ts) | Authorization-code flow with PKCE, `state` and `nonce` |
 | Callback | [src/app/api/auth/google/callback/route.ts](src/app/api/auth/google/callback/route.ts) | Verifies Google's ID token against its JWKS, then the allowlist |
 
-Removing an address from `POS_ALLOWED_EMAILS` revokes access immediately —
-existing sessions stop working on their next request rather than lingering
-until they expire.
+Removing an address from either list revokes access immediately, and moving one
+between lists changes what it may reach just as fast — existing sessions pick
+the change up on their next request rather than lingering until they expire.
+
+A path under `/pos` that no section claims is owner-only, so a screen added
+later stays private until it is listed in `access.ts`.
 
 ### Getting around
 

@@ -6,11 +6,13 @@
  */
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 
+import type { PosRole } from "./access";
 import {
   OAUTH_TX_TTL_SECONDS,
   SESSION_TTL_SECONDS,
   isAllowedEmail,
   requireEnv,
+  roleFor,
 } from "./config";
 
 const ALG = "HS256";
@@ -58,15 +60,26 @@ async function verify(
   }
 }
 
-/** The signed-in cashier. Only non-sensitive display data. */
-export type PosUser = {
+/** What the token carries: who signed in, and nothing about what they may do. */
+export type PosIdentity = {
   email: string;
   name: string | null;
   picture: string | null;
 };
 
-export function signSession(user: PosUser): Promise<string> {
-  return sign({ ...user }, "session", SESSION_TTL_SECONDS);
+/** The signed-in cashier. Only non-sensitive display data. */
+export type PosUser = PosIdentity & {
+  /**
+   * Worked out from the allowlists at read time, never carried in the token —
+   * see `readSession`. A role in the payload would be a claim the holder of
+   * the cookie gets to make about themselves.
+   */
+  role: PosRole;
+};
+
+export function signSession(user: PosIdentity): Promise<string> {
+  const { email, name, picture } = user;
+  return sign({ email, name, picture }, "session", SESSION_TTL_SECONDS);
 }
 
 export async function readSession(
@@ -75,14 +88,19 @@ export async function readSession(
   if (!token) return null;
 
   const payload = await verify(token, "session");
-  // Re-check the allowlist on every read: revoking access should only require
-  // removing the address, not waiting for live sessions to expire.
+  // Re-check the allowlist on every read: revoking access, or moving someone
+  // between lists, should only require editing the address — not waiting for
+  // live sessions to expire.
   if (!payload || !isAllowedEmail(payload.email)) return null;
 
   return {
     email: payload.email,
     name: typeof payload.name === "string" ? payload.name : null,
     picture: typeof payload.picture === "string" ? payload.picture : null,
+    // `isAllowedEmail` already proved this resolves; the fallback is only here
+    // so an unforeseen path lands on the smaller set of permissions, not the
+    // larger one.
+    role: roleFor(payload.email) ?? "staff",
   };
 }
 

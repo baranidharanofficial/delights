@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requirePosUser } from "@/lib/auth/session";
+import { requireSection } from "@/lib/auth/session";
 import { getMaterials } from "@/lib/shop/materials";
 import { recordProduction } from "@/lib/shop/production";
 import { deleteRecipe, saveRecipe } from "@/lib/shop/recipes";
@@ -28,7 +28,7 @@ export async function bake(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const user = await requirePosUser();
+  const user = await requireSection("/pos/production");
 
   const menuItemId = text(formData, "menuItemId");
   if (menuItemId === "") return { error: "Pick what you baked." };
@@ -59,7 +59,7 @@ export async function saveRecipeForm(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  await requirePosUser();
+  await requireSection("/pos/production");
 
   const menuItemId = text(formData, "menuItemId");
   if (menuItemId === "") return { error: "Missing the menu item." };

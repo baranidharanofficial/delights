@@ -1,4 +1,4 @@
-import { requirePosUser } from "@/lib/auth/session";
+import { requireSection } from "@/lib/auth/session";
 import { businessDate, formatDayMonth, formatIstTime } from "@/lib/shop/dates";
 import { LAUNCH_OFFER_LABEL, MAX_SIGNUPS } from "@/lib/shop/launch-offer";
 import {
@@ -42,7 +42,7 @@ function toRow(signup: LaunchSignup): CodeRow {
 }
 
 export default async function LaunchCodesPage() {
-  const user = await requirePosUser();
+  const user = await requireSection("/pos/launch");
   const signups = await getLaunchSignups();
 
   const claimed = signups.length;

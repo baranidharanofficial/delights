@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requirePosUser } from "@/lib/auth/session";
+import { requireSection } from "@/lib/auth/session";
 import {
   countRecipesUsing,
   createMaterial,
@@ -32,7 +32,7 @@ function text(formData: FormData, field: string): string {
 }
 
 async function actor(): Promise<Actor> {
-  const user = await requirePosUser();
+  const user = await requireSection("/pos/inventory");
   return { email: user.email, name: user.name };
 }
 
@@ -60,7 +60,7 @@ export async function setFinishedStock(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  await requirePosUser();
+  await requireSection("/pos/inventory");
 
   const id = text(formData, "id");
   if (id === "") return { error: "Nothing to update." };
@@ -94,7 +94,7 @@ export async function saveMaterial(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  await requirePosUser();
+  await requireSection("/pos/inventory");
 
   const name = text(formData, "name");
   if (name === "") return { error: "Name is required." };
@@ -133,7 +133,7 @@ export async function removeMaterial(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  await requirePosUser();
+  await requireSection("/pos/inventory");
 
   const id = text(formData, "id");
   if (id === "") return { error: "Nothing to delete." };

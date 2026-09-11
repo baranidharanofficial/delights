@@ -1,4 +1,4 @@
-import { requirePosUser } from "@/lib/auth/session";
+import { requireSection } from "@/lib/auth/session";
 import { getMaterials } from "@/lib/shop/materials";
 import { getMenuItems } from "@/lib/shop/menu";
 import { getRecentProductions } from "@/lib/shop/production";
@@ -8,7 +8,7 @@ import PosShell from "../shell";
 import ProductionScreen from "./production-screen";
 
 export default async function ProductionPage() {
-  const user = await requirePosUser();
+  const user = await requireSection("/pos/production");
 
   const [items, materials, recipes, productions] = await Promise.all([
     getMenuItems(),
