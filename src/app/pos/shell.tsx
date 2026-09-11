@@ -7,9 +7,9 @@ import { signOut } from "./actions";
 
 /**
  * The sections, grouped the way the shop thinks about them rather than in one
- * flat list. Seven destinations is past the point where a row of pills reads as
- * a set of choices — grouping is what makes the panel scannable instead of just
- * long.
+ * flat list. This many destinations is well past the point where a row of pills
+ * reads as a set of choices — grouping is what makes the panel scannable
+ * instead of just long.
  */
 const GROUPS = [
   {
@@ -22,6 +22,7 @@ const GROUPS = [
   {
     label: "Kitchen",
     tabs: [
+      { href: "/pos/kitchen", label: "Orders" },
       { href: "/pos/menu", label: "Menu" },
       { href: "/pos/inventory", label: "Inventory" },
       { href: "/pos/production", label: "Production" },

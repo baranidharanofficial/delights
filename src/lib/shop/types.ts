@@ -85,11 +85,91 @@ export type Order = {
   cashier: { email: string; name: string | null };
   /** `null` on a live sale. Present means the order no longer counts. */
   voided: VoidRecord | null;
+  /** How far the kitchen has got with making it. */
+  kitchen: KitchenState;
 };
 
 export function isVoided(order: Order): boolean {
   return order.voided !== null;
 }
+
+// --- Kitchen ----------------------------------------------------------------
+
+/** Who finished a piece of kitchen work, and when. */
+export type KitchenStamp = {
+  atMs: number;
+  by: { email: string; name: string | null };
+};
+
+/**
+ * How far through a ticket the kitchen is.
+ *
+ * Held beside `lines` rather than as a flag on each line. Those lines are the
+ * sale exactly as it was rung up, and a screen that gets tapped a few hundred
+ * times a shift has no business rewriting the record of what a customer paid.
+ *
+ * Keyed by `OrderLine.itemId`, which `placeOrder` guarantees is unique within
+ * an order — the request is collapsed to one line per item before it is saved.
+ */
+export type KitchenState = {
+  lines: Record<string, KitchenStamp>;
+  /** Set when the whole ticket went out. `null` while it is still cooking. */
+  completed: KitchenStamp | null;
+};
+
+/** A ticket nobody has touched. Also what a pre-kitchen-screen order reads as. */
+export function emptyKitchen(): KitchenState {
+  return { lines: {}, completed: null };
+}
+
+export const KITCHEN_STATUSES = ["new", "working", "served"] as const;
+export type KitchenStatus = (typeof KITCHEN_STATUSES)[number];
+
+export const KITCHEN_STATUS_LABELS: Record<KitchenStatus, string> = {
+  new: "New",
+  working: "In progress",
+  served: "Served",
+};
+
+/**
+ * Whether one item on the ticket is made.
+ *
+ * A served ticket reports every item made whether or not each was ticked off
+ * individually — the food went out, so by definition it all got made. This is
+ * what lets the kitchen call a whole ticket away in one tap on a busy pass
+ * without leaving items that look outstanding behind it.
+ */
+export function isLineDone(order: Order, itemId: string): boolean {
+  return order.kitchen.completed !== null || itemId in order.kitchen.lines;
+}
+
+export function kitchenStatus(order: Order): KitchenStatus {
+  if (order.kitchen.completed !== null) return "served";
+  return order.lines.some((line) => line.itemId in order.kitchen.lines)
+    ? "working"
+    : "new";
+}
+
+/** How many of the ticket's items are made, out of how many there are. */
+export function kitchenProgress(order: Order): { done: number; total: number } {
+  return {
+    done: order.lines.filter((line) => isLineDone(order, line.itemId)).length,
+    total: order.lines.length,
+  };
+}
+
+/** Whole minutes a ticket has been waiting. */
+export function waitingMinutes(order: Order, nowMs: number): number {
+  return Math.max(0, Math.floor((nowMs - order.placedAtMs) / 60_000));
+}
+
+/**
+ * When a ticket stops being ordinary and starts being a problem.
+ *
+ * A guess at counter service rather than a measured figure — it only drives the
+ * colour of a chip, so being a few minutes out costs nothing.
+ */
+export const KITCHEN_LATE_MINUTES = 15;
 
 /** What the terminal sends to the server: ids and counts, never prices. */
 export type OrderRequestLine = {

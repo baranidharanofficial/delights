@@ -11,7 +11,10 @@ import { COLLECTIONS, getDb } from "@/lib/firebase/admin";
 import { businessDate } from "./dates";
 import { TAX_LABEL, TAX_RATE, taxOn } from "./money";
 import {
+  emptyKitchen,
   isPaymentMethod,
+  type KitchenStamp,
+  type KitchenState,
   type Order,
   type OrderLine,
   type OrderRequestLine,
@@ -183,6 +186,7 @@ export async function placeOrder(
         method,
         cashier,
         voided: null,
+        kitchen: emptyKitchen(),
       };
 
       transaction.set(counterRef, { seq: sequence }, { merge: true });
@@ -204,6 +208,9 @@ export async function placeOrder(
         // Written explicitly rather than left absent so the field is there to
         // filter on if voids ever need a query of their own.
         voided: null,
+        // The kitchen screen ticks items off inside this block, which is why it
+        // is a sibling of `lines` rather than part of them.
+        kitchen: { lines: {}, completed: null },
       });
 
       return { ok: true as const, order };
@@ -232,6 +239,39 @@ function readVoid(data: FirebaseFirestore.DocumentData): VoidRecord | null {
   };
 }
 
+function readStamp(value: unknown): KitchenStamp | null {
+  if (!value || typeof value !== "object") return null;
+
+  const { at, by } = value as { at?: unknown; by?: Record<string, unknown> };
+  return {
+    atMs: at instanceof Timestamp ? at.toMillis() : 0,
+    by: {
+      email: String(by?.email ?? ""),
+      name: typeof by?.name === "string" ? by.name : null,
+    },
+  };
+}
+
+/**
+ * Orders written before the kitchen screen existed carry no `kitchen` field at
+ * all, and read back as a ticket nobody has touched — which is exactly what
+ * they are. No backfill needed.
+ */
+function readKitchen(data: FirebaseFirestore.DocumentData): KitchenState {
+  const kitchen = data.kitchen;
+  if (!kitchen || typeof kitchen !== "object") return emptyKitchen();
+
+  const lines: Record<string, KitchenStamp> = {};
+  if (kitchen.lines && typeof kitchen.lines === "object") {
+    for (const [itemId, value] of Object.entries(kitchen.lines)) {
+      const stamp = readStamp(value);
+      if (stamp) lines[itemId] = stamp;
+    }
+  }
+
+  return { lines, completed: readStamp(kitchen.completed) };
+}
+
 function readOrder(doc: DocumentSnapshot): Order | null {
   const data = doc.data();
   if (!data) return null;
@@ -258,6 +298,7 @@ function readOrder(doc: DocumentSnapshot): Order | null {
       name: data.cashier?.name ?? null,
     },
     voided: readVoid(data),
+    kitchen: readKitchen(data),
   };
 }
 
