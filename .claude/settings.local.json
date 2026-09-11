@@ -4,7 +4,8 @@
       "Bash(git clone:*)",
       "Bash(git push *)",
       "Bash(gh auth *)",
-      "Bash(git credential *)"
+      "Bash(git credential *)",
+      "Bash(git fetch *)"
     ]
   }
 }
