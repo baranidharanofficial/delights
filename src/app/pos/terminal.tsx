@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 
 import { formatMoney, TAX_LABEL, taxOn } from "@/lib/shop/money";
 import {
@@ -12,6 +12,127 @@ import {
 } from "@/lib/shop/types";
 
 import { checkout } from "./actions";
+
+function printReceipt(order: Order) {
+  const placedAt = new Date(order.placedAtMs);
+  const dateStr = placedAt.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+  const timeStr = placedAt.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+  const linesHtml = order.lines
+    .map(
+      (line) => `
+      <tr>
+        <td>${line.name}</td>
+        <td class="qty">${line.quantity}</td>
+        <td class="amt">${formatMoney(line.unitPrice)}</td>
+        <td class="amt">${formatMoney(line.lineTotal)}</td>
+      </tr>`,
+    )
+    .join("");
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Receipt #${order.reference}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      width: 80mm;
+      padding: 4mm 4mm 8mm;
+      color: #000;
+    }
+    .center { text-align: center; }
+    .shop-name {
+      font-size: 20px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      margin-bottom: 2px;
+    }
+    .tagline { font-size: 10px; margin-bottom: 6px; }
+    .divider { border-top: 1px dashed #000; margin: 6px 0; }
+    .meta { font-size: 11px; margin-bottom: 2px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { font-size: 10px; text-transform: uppercase; padding-bottom: 3px; }
+    td { padding: 2px 0; vertical-align: top; }
+    .qty { width: 10mm; text-align: center; }
+    .amt { width: 20mm; text-align: right; }
+    .totals { width: 100%; }
+    .totals td { padding: 1px 0; }
+    .totals .label { text-align: left; }
+    .totals .value { text-align: right; width: 24mm; }
+    .grand-total td { font-size: 14px; font-weight: bold; padding-top: 4px; }
+    .footer { margin-top: 8px; font-size: 10px; }
+    @media print {
+      @page { margin: 0; size: 80mm auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="center">
+    <div class="shop-name">DELIGHTS</div>
+    <div class="tagline">Thank you for your order!</div>
+  </div>
+  <div class="divider"></div>
+  <div class="meta">Receipt : #${order.reference}</div>
+  <div class="meta">Date    : ${dateStr} ${timeStr}</div>
+  <div class="meta">Payment : ${order.method}</div>
+  ${order.cashier.name ? `<div class="meta">Cashier : ${order.cashier.name}</div>` : ""}
+  <div class="divider"></div>
+  <table>
+    <thead>
+      <tr>
+        <th style="text-align:left">Item</th>
+        <th class="qty">Qty</th>
+        <th class="amt">Rate</th>
+        <th class="amt">Amt</th>
+      </tr>
+    </thead>
+    <tbody>${linesHtml}</tbody>
+  </table>
+  <div class="divider"></div>
+  <table class="totals">
+    <tr>
+      <td class="label">Subtotal</td>
+      <td class="value">${formatMoney(order.subtotal)}</td>
+    </tr>
+    <tr>
+      <td class="label">${order.taxLabel}</td>
+      <td class="value">${formatMoney(order.tax)}</td>
+    </tr>
+  </table>
+  <div class="divider"></div>
+  <table class="totals grand-total">
+    <tr>
+      <td class="label">TOTAL</td>
+      <td class="value">${formatMoney(order.total)}</td>
+    </tr>
+  </table>
+  <div class="divider"></div>
+  <div class="center footer">
+    <div>Visit us again!</div>
+  </div>
+</body>
+</html>`;
+
+  const win = window.open("", "_blank", "width=320,height=600");
+  if (!win) return;
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  win.print();
+  win.onafterprint = () => win.close();
+}
 
 type CartLine = { item: MenuItem; quantity: number };
 
@@ -114,6 +235,7 @@ export default function PosTerminal({
         setCompleted(result.order);
         setQuantities({});
         setError(null);
+        printReceipt(result.order);
       } else {
         setError(result.error);
       }
@@ -394,6 +516,11 @@ function Receipt({
   order: Order;
   onDismiss: () => void;
 }) {
+  useEffect(() => {
+    // Remove the focus from any button so the keyboard shortcut doesn't retrigger
+    (document.activeElement as HTMLElement | null)?.blur();
+  }, []);
+
   return (
     <div className="flex flex-col">
       <header className="border-b border-white/10 px-5 py-4">
@@ -429,13 +556,22 @@ function Receipt({
             </dd>
           </div>
         </dl>
-        <button
-          type="button"
-          onClick={onDismiss}
-          className="w-full rounded-full bg-accent px-4 py-2.5 text-sm font-medium text-background transition-all hover:brightness-110 active:scale-[0.98]"
-        >
-          New order
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => printReceipt(order)}
+            className="rounded-full border border-white/10 px-4 py-2.5 text-sm text-muted transition-colors hover:border-white/20 hover:text-foreground"
+          >
+            Print
+          </button>
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="flex-1 rounded-full bg-accent px-4 py-2.5 text-sm font-medium text-background transition-all hover:brightness-110 active:scale-[0.98]"
+          >
+            New order
+          </button>
+        </div>
       </footer>
     </div>
   );

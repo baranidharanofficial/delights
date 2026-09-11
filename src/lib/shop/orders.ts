@@ -393,6 +393,18 @@ export async function voidOrder(
 }
 
 /**
+ * Permanently removes an order document.
+ *
+ * Unlike a void, this leaves no trace and the receipt number can never be
+ * accounted for. Use only to clean up test orders or data entry mistakes before
+ * the day is reconciled. Stock is not automatically restored — the caller is
+ * responsible for any inventory adjustment needed.
+ */
+export async function deleteOrder(orderId: string): Promise<void> {
+  await getDb().collection(COLLECTIONS.orders).doc(orderId).delete();
+}
+
+/**
  * Every order for one business date, newest first.
  *
  * Sorted in memory rather than with `orderBy`: pairing an equality filter with a

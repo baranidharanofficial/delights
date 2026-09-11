@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireSection } from "@/lib/auth/session";
-import { voidOrder } from "@/lib/shop/orders";
+import { deleteOrder, voidOrder } from "@/lib/shop/orders";
 
 import { EMPTY_FORM_STATE, type FormState } from "../form-state";
 
@@ -31,6 +31,33 @@ export async function voidSale(
 
   revalidatePath("/pos/reports");
   // Returned units are back on the shelf, so the terminal's menu is stale.
+  revalidatePath("/pos");
+  revalidatePath("/pos/menu");
+
+  return EMPTY_FORM_STATE;
+}
+
+export async function deleteSale(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const user = await requireSection("/pos/reports");
+  if (user.role !== "owner") {
+    return { error: "Only owners can delete orders." };
+  }
+
+  const orderId = formData.get("orderId");
+  if (typeof orderId !== "string" || orderId === "") {
+    return { error: "Nothing to delete." };
+  }
+
+  try {
+    await deleteOrder(orderId);
+  } catch {
+    return { error: "Could not delete the order. Try again." };
+  }
+
+  revalidatePath("/pos/reports");
   revalidatePath("/pos");
   revalidatePath("/pos/menu");
 
