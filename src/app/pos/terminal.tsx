@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 
 import { formatMoney, TAX_LABEL, taxOn } from "@/lib/shop/money";
 import {
+  emptyKitchen,
   PAYMENT_METHODS,
   type Category,
   type MenuItem,
@@ -62,9 +63,9 @@ function printReceipt(order: Order) {
     .tagline { font-size: 10px; margin-bottom: 6px; }
     .divider { border-top: 1px dashed #000; margin: 6px 0; }
     .meta { font-size: 11px; margin-bottom: 2px; }
-    table { width: 100%; border-collapse: collapse; }
+    table { width: 100%; table-layout: fixed; border-collapse: collapse; }
     th { font-size: 10px; text-transform: uppercase; padding-bottom: 3px; }
-    td { padding: 2px 0; vertical-align: top; }
+    td { padding: 2px 0; vertical-align: top; overflow-wrap: break-word; }
     .qty { width: 10mm; text-align: center; }
     .amt { width: 20mm; text-align: right; }
     .totals { width: 100%; }
@@ -132,6 +133,32 @@ function printReceipt(order: Order) {
   win.focus();
   win.print();
   win.onafterprint = () => win.close();
+}
+
+/** Sample receipt used to test paper alignment and printer setup. */
+function testOrder(): Order {
+  const now = Date.now();
+  const subtotal = 258;
+  const tax = taxOn(subtotal);
+  return {
+    id: "test-print",
+    reference: "TEST",
+    businessDate: new Date(now).toISOString().slice(0, 10),
+    placedAtMs: now,
+    lines: [
+      { itemId: "test-1", name: "Sample Item A", unitPrice: 120, quantity: 1, lineTotal: 120 },
+      { itemId: "test-2", name: "Sample Item B", unitPrice: 69, quantity: 2, lineTotal: 138 },
+    ],
+    subtotal,
+    tax,
+    taxRate: tax / subtotal,
+    taxLabel: TAX_LABEL,
+    total: subtotal + tax,
+    method: "Cash",
+    cashier: { email: "", name: "Test Print" },
+    voided: null,
+    kitchen: emptyKitchen(),
+  };
 }
 
 type CartLine = { item: MenuItem; quantity: number };
@@ -449,6 +476,16 @@ export default function PosTerminal({
                   {error}
                 </p>
               )}
+
+              <div className="text-right">
+                <button
+                  type="button"
+                  onClick={() => printReceipt(testOrder())}
+                  className="text-xs text-muted underline-offset-2 transition-colors hover:text-foreground hover:underline"
+                >
+                  Test print
+                </button>
+              </div>
 
               <div className="flex gap-2">
                 <button
