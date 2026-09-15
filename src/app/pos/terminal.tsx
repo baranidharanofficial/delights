@@ -46,11 +46,18 @@ function printReceipt(order: Order) {
   <title>Receipt #${order.reference}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; }
     body {
       font-family: 'Courier New', Courier, monospace;
       font-size: 12px;
-      width: 80mm;
-      padding: 4mm 4mm 8mm;
+      /*
+       * Percent, not mm: many thermal printer drivers ignore the @page size
+       * below and hand the browser a printable width narrower than the
+       * paper, so a fixed-mm layout gets its right edge clipped. Sizing
+       * everything relative to the box the driver actually gives us keeps
+       * left/right padding visually even no matter what that width is.
+       */
+      padding: 12px 4% 24px;
       color: #000;
     }
     .center { text-align: center; }
@@ -66,12 +73,12 @@ function printReceipt(order: Order) {
     table { width: 100%; table-layout: fixed; border-collapse: collapse; }
     th { font-size: 10px; text-transform: uppercase; padding-bottom: 3px; }
     td { padding: 2px 0; vertical-align: top; overflow-wrap: break-word; }
-    .qty { width: 10mm; text-align: center; }
-    .amt { width: 20mm; text-align: right; }
+    .qty { width: 14%; text-align: center; }
+    .amt { width: 24%; text-align: right; }
     .totals { width: 100%; }
     .totals td { padding: 1px 0; }
     .totals .label { text-align: left; }
-    .totals .value { text-align: right; width: 24mm; }
+    .totals .value { text-align: right; width: 34%; }
     .grand-total td { font-size: 14px; font-weight: bold; padding-top: 4px; }
     .footer { margin-top: 8px; font-size: 10px; }
     @media print {
