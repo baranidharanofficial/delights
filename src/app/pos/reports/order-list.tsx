@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 
 import { formatIstTime } from "@/lib/shop/dates";
 import { formatMoney } from "@/lib/shop/money";
+import { printReceipt } from "@/lib/shop/receipt";
 import type { Order } from "@/lib/shop/types";
 
 import { EMPTY_FORM_STATE } from "../form-state";
@@ -93,7 +94,13 @@ function DeleteForm({ order }: { order: Order }) {
   );
 }
 
-function OrderRow({ order }: { order: Order }) {
+function OrderRow({
+  order,
+  showVoid = true,
+}: {
+  order: Order;
+  showVoid?: boolean;
+}) {
   const voided = order.voided;
 
   return (
@@ -130,14 +137,28 @@ function OrderRow({ order }: { order: Order }) {
           {voided.stockRestored ? "returned to stock" : "not returned to stock"}
         </p>
       ) : (
-        <VoidForm order={order} />
+        showVoid && <VoidForm order={order} />
       )}
+
+      <button
+        type="button"
+        onClick={() => printReceipt(order)}
+        className="mt-1 block text-[0.7rem] text-muted/60 transition-colors hover:text-foreground"
+      >
+        Reprint bill
+      </button>
       <DeleteForm order={order} />
     </li>
   );
 }
 
-export default function OrderList({ orders }: { orders: Order[] }) {
+export default function OrderList({
+  orders,
+  showVoid = true,
+}: {
+  orders: Order[];
+  showVoid?: boolean;
+}) {
   if (orders.length === 0) {
     return (
       <p className="px-5 py-10 text-center text-sm text-muted">
@@ -149,7 +170,7 @@ export default function OrderList({ orders }: { orders: Order[] }) {
   return (
     <ul className="divide-y divide-white/[0.06] px-5">
       {orders.map((order) => (
-        <OrderRow key={order.id} order={order} />
+        <OrderRow key={order.id} order={order} showVoid={showVoid} />
       ))}
     </ul>
   );

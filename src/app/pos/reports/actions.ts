@@ -41,7 +41,10 @@ export async function deleteSale(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const user = await requireSection("/pos/reports");
+  // "/pos", not "/pos/reports" — this form also renders on the terminal's
+  // "Today's orders" panel, which staff (not just owners) can reach. The
+  // explicit role check below is what actually restricts deletion.
+  const user = await requireSection("/pos");
   if (user.role !== "owner") {
     return { error: "Only owners can delete orders." };
   }
