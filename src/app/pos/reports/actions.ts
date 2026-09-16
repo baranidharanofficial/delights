@@ -63,6 +63,7 @@ export async function deleteSale(
   revalidatePath("/pos/reports");
   revalidatePath("/pos");
   revalidatePath("/pos/menu");
+  revalidatePath("/pos/kitchen");
 
   return EMPTY_FORM_STATE;
 }

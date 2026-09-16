@@ -11,6 +11,7 @@ import { useFormStatus } from "react-dom";
 
 import { formatIstTime } from "@/lib/shop/dates";
 import { formatMoney } from "@/lib/shop/money";
+import { printReceipt } from "@/lib/shop/receipt";
 import {
   KITCHEN_LATE_MINUTES,
   isLineDone,
@@ -23,7 +24,26 @@ import {
 
 import { EMPTY_FORM_STATE } from "../form-state";
 import { Alert } from "../form-ui";
+import DeleteOrderForm from "../order-delete-form";
 import { setItemDone, setTicketDone } from "./actions";
+
+function ReprintButton({
+  order,
+  className = "",
+}: {
+  order: Order;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => printReceipt(order)}
+      className={`text-[0.7rem] text-muted/60 transition-colors hover:text-foreground ${className}`}
+    >
+      Reprint bill
+    </button>
+  );
+}
 
 /** How often the board pulls fresh tickets, and re-reads the clock. */
 const REFRESH_MS = 15_000;
@@ -256,6 +276,10 @@ function Ticket({
         >
           {allMade ? "Send ticket ✓" : `Send ticket (${total - done} left)`}
         </TicketForm>
+        <div className="mt-2 flex items-center justify-between">
+          <ReprintButton order={order} />
+          <DeleteOrderForm order={order} />
+        </div>
       </div>
     </li>
   );
@@ -276,6 +300,8 @@ function ServedRow({ order, toggle }: { order: Order; toggle: Toggle }) {
           {completed.by.name ?? (completed.by.email || "someone")}
         </span>
       )}
+      <ReprintButton order={order} className="shrink-0" />
+      <DeleteOrderForm order={order} className="shrink-0" />
       <form action={toggle} className="shrink-0">
         <input type="hidden" name="orderId" value={order.id} />
         <input type="hidden" name="done" value="0" />
@@ -431,6 +457,8 @@ export default function KitchenBoard({
                 <span className="shrink-0 text-xs text-muted/60 tabular-nums">
                   {formatMoney(order.total)}
                 </span>
+                <ReprintButton order={order} className="shrink-0" />
+                <DeleteOrderForm order={order} className="shrink-0" />
               </li>
             ))}
           </ul>

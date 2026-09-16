@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 
 import { formatIstTime } from "@/lib/shop/dates";
 import { formatMoney } from "@/lib/shop/money";
@@ -9,7 +9,8 @@ import type { Order } from "@/lib/shop/types";
 
 import { EMPTY_FORM_STATE } from "../form-state";
 import { Alert, FIELD, SubmitButton } from "../form-ui";
-import { deleteSale, voidSale } from "./actions";
+import DeleteOrderForm from "../order-delete-form";
+import { voidSale } from "./actions";
 
 function VoidForm({ order }: { order: Order }) {
   const [state, submit] = useActionState(voidSale, EMPTY_FORM_STATE);
@@ -47,49 +48,6 @@ function VoidForm({ order }: { order: Order }) {
         The receipt number stays used either way.
       </p>
       <Alert message={state.error} />
-    </details>
-  );
-}
-
-function DeleteForm({ order }: { order: Order }) {
-  const [confirmed, setConfirmed] = useState(false);
-  const [state, submit] = useActionState(deleteSale, EMPTY_FORM_STATE);
-
-  return (
-    <details className="mt-1">
-      <summary className="cursor-pointer list-none text-[0.7rem] text-muted/60 transition-colors hover:text-red-300">
-        Delete this order
-      </summary>
-
-      {confirmed ? (
-        <form action={submit} className="mt-2 flex flex-wrap items-center gap-2">
-          <input type="hidden" name="orderId" value={order.id} />
-          <span className="text-xs text-red-300">
-            This permanently removes the order record. Are you sure?
-          </span>
-          <div className="flex gap-2">
-            <SubmitButton variant="danger" size="auto">
-              Yes, delete
-            </SubmitButton>
-            <button
-              type="button"
-              onClick={() => setConfirmed(false)}
-              className="rounded border border-white/10 px-2 py-1 text-xs text-muted hover:text-foreground"
-            >
-              Cancel
-            </button>
-          </div>
-          <Alert message={state.error} />
-        </form>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setConfirmed(true)}
-          className="mt-2 text-[0.7rem] text-red-400/70 hover:text-red-300"
-        >
-          Confirm delete →
-        </button>
-      )}
     </details>
   );
 }
@@ -147,7 +105,7 @@ function OrderRow({
       >
         Reprint bill
       </button>
-      <DeleteForm order={order} />
+      <DeleteOrderForm order={order} className="mt-1" />
     </li>
   );
 }
