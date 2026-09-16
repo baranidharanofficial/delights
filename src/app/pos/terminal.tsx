@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 
+import {
+  formatBusinessDate,
+  formatDayMonth,
+  shiftBusinessDate,
+} from "@/lib/shop/dates";
 import { formatMoney, TAX_LABEL, taxOn } from "@/lib/shop/money";
 import { printReceipt } from "@/lib/shop/receipt";
 import {
@@ -55,15 +61,70 @@ function sellableLimit(item: MenuItem): number {
   return item.stock ?? Number.POSITIVE_INFINITY;
 }
 
+const DATE_NAV_LINK =
+  "rounded-full border border-white/10 px-2.5 py-1.5 text-xs text-muted transition-colors hover:border-white/20 hover:text-foreground";
+
+/**
+ * Switches which business date the terminal rings sales up against — a link,
+ * not a client filter, so the menu's stock and the "past orders" panel both
+ * reload for the day actually being sold against.
+ */
+function DateSwitcher({ date, today }: { date: string; today: string }) {
+  const backdating = date !== today;
+
+  return (
+    <div
+      className="flex items-center gap-1.5"
+      role="group"
+      aria-label="Business date"
+    >
+      <Link
+        href={`/pos?date=${shiftBusinessDate(date, -1)}`}
+        aria-label="Previous day"
+        className={DATE_NAV_LINK}
+      >
+        ‹
+      </Link>
+      <span
+        className={`min-w-[5.5rem] text-center text-xs font-medium ${
+          backdating ? "text-amber-400" : "text-muted"
+        }`}
+      >
+        {backdating ? formatBusinessDate(date) : "Today"}
+      </span>
+      {backdating && (
+        <Link
+          href={`/pos?date=${shiftBusinessDate(date, 1)}`}
+          aria-label="Next day"
+          className={DATE_NAV_LINK}
+        >
+          ›
+        </Link>
+      )}
+      {backdating && (
+        <Link href="/pos" className={DATE_NAV_LINK}>
+          Today
+        </Link>
+      )}
+    </div>
+  );
+}
+
 export default function PosTerminal({
   categories,
   items,
   recentOrders,
+  date,
+  today,
 }: {
   categories: Category[];
   items: MenuItem[];
   recentOrders: Order[];
+  /** Business date this screen is ringing sales up against. */
+  date: string;
+  today: string;
 }) {
+  const backdating = date !== today;
   const [quantities, setQuantities] = useState<Quantities>({});
   const [categoryId, setCategoryId] = useState<string | "all">("all");
   const [query, setQuery] = useState("");
@@ -141,7 +202,7 @@ export default function PosTerminal({
     }));
 
     startCharging(async () => {
-      const result = await checkout(request, method);
+      const result = await checkout(request, method, date);
       if (result.ok) {
         setCompleted(result.order);
         setQuantities({});
@@ -168,32 +229,34 @@ export default function PosTerminal({
             />
           </label>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Category">
-              {[{ id: "all", name: "All" }, ...categories].map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  aria-pressed={categoryId === option.id}
-                  onClick={() => setCategoryId(option.id)}
-                  className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
-                    categoryId === option.id
-                      ? "border-accent/40 bg-accent/15 text-accent"
-                      : "border-white/10 text-muted hover:border-white/20 hover:text-foreground"
-                  }`}
-                >
-                  {option.name}
-                </button>
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowPastOrders(true)}
-              className="rounded-full border border-white/10 px-3.5 py-1.5 text-xs font-medium text-muted transition-colors hover:border-white/20 hover:text-foreground"
-            >
-              Today&rsquo;s orders
-            </button>
+          <DateSwitcher date={date} today={today} />
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Category">
+            {[{ id: "all", name: "All" }, ...categories].map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                aria-pressed={categoryId === option.id}
+                onClick={() => setCategoryId(option.id)}
+                className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
+                  categoryId === option.id
+                    ? "border-accent/40 bg-accent/15 text-accent"
+                    : "border-white/10 text-muted hover:border-white/20 hover:text-foreground"
+                }`}
+              >
+                {option.name}
+              </button>
+            ))}
           </div>
+          <button
+            type="button"
+            onClick={() => setShowPastOrders(true)}
+            className="rounded-full border border-white/10 px-3.5 py-1.5 text-xs font-medium text-muted transition-colors hover:border-white/20 hover:text-foreground"
+          >
+            {backdating ? `Orders · ${formatDayMonth(date)}` : "Today’s orders"}
+          </button>
         </div>
 
         {items.length === 0 ? (
@@ -271,7 +334,11 @@ export default function PosTerminal({
         className="sticky top-4 flex max-h-[calc(100vh-2rem)] flex-col rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm"
       >
         {completed ? (
-          <Receipt order={completed} onDismiss={() => setCompleted(null)} />
+          <Receipt
+            order={completed}
+            today={today}
+            onDismiss={() => setCompleted(null)}
+          />
         ) : (
           <>
             <header className="flex items-baseline justify-between border-b border-white/10 px-5 py-4">
@@ -282,6 +349,12 @@ export default function PosTerminal({
                   : `${itemCount} item${itemCount === 1 ? "" : "s"}`}
               </span>
             </header>
+            {backdating && (
+              <p className="border-b border-amber-500/20 bg-amber-500/10 px-5 py-2 text-[0.7rem] text-amber-300">
+                This order will be recorded against {formatBusinessDate(date)}
+                , not today.
+              </p>
+            )}
 
             <div className="min-h-0 flex-1 overflow-y-auto px-5">
               {lines.length === 0 ? (
@@ -406,6 +479,7 @@ export default function PosTerminal({
       {showPastOrders && (
         <PastOrders
           orders={recentOrders}
+          title={backdating ? `Orders · ${formatBusinessDate(date)}` : "Today’s orders"}
           onClose={() => setShowPastOrders(false)}
         />
       )}
@@ -448,9 +522,11 @@ function StepperButton({
 
 function Receipt({
   order,
+  today,
   onDismiss,
 }: {
   order: Order;
+  today: string;
   onDismiss: () => void;
 }) {
   useEffect(() => {
@@ -467,6 +543,11 @@ function Receipt({
         <h2 className="mt-1.5 text-sm font-semibold">
           Order #{order.reference} · {order.method}
         </h2>
+        {order.businessDate !== today && (
+          <p className="mt-0.5 text-xs font-medium text-amber-400">
+            Recorded against {formatBusinessDate(order.businessDate)}
+          </p>
+        )}
       </header>
 
       <div className="max-h-64 overflow-y-auto px-5 py-3">

@@ -18,23 +18,29 @@ export async function signOut(): Promise<void> {
  *
  * Receives item ids and quantities only. Prices, tax and the total are read and
  * computed server-side in `placeOrder` — a Server Action accepts direct POSTs,
- * so nothing the browser says about money is taken on trust.
+ * so nothing the browser says about money is taken on trust. `date` is trusted
+ * no further than that either — `placeOrder` re-validates it can't be in the
+ * future before it counts against any day's books.
  */
 export async function checkout(
   lines: OrderRequestLine[],
   method: PaymentMethod,
+  date: string,
 ): Promise<PlaceOrderResult> {
   const user = await requireSection("/pos");
 
-  const result = await placeOrder(lines, method, {
-    email: user.email,
-    name: user.name,
-  });
+  const result = await placeOrder(
+    lines,
+    method,
+    { email: user.email, name: user.name },
+    date,
+  );
 
   if (result.ok) {
     // Stock came down, so the menu the next render serves is now stale.
     revalidatePath("/pos");
     revalidatePath("/pos/reports");
+    revalidatePath("/pos/kitchen");
   }
 
   return result;

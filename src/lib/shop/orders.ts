@@ -8,7 +8,7 @@ import {
 
 import { COLLECTIONS, getDb } from "@/lib/firebase/admin";
 
-import { businessDate } from "./dates";
+import { businessDate, isBusinessDate } from "./dates";
 import { TAX_LABEL, TAX_RATE, taxOn } from "./money";
 import {
   emptyKitchen,
@@ -62,11 +62,19 @@ function aggregate(lines: OrderRequestLine[]): Map<string, number> {
  *
  * The receipt number, the stock decrements and the order document all land in
  * one transaction, so a sale is either fully recorded or not recorded at all.
+ *
+ * `targetDate` lets the terminal ring a sale in against an earlier business
+ * date — a till missed at close, entered the next morning. It only ever moves
+ * backward: `placedAt` stays the real clock time the sale was actually keyed
+ * in, so the audit trail (and the receipt sequence, scoped per business date)
+ * stays honest about when the record was made even as `businessDate` says
+ * which day's books it counts against.
  */
 export async function placeOrder(
   requestLines: OrderRequestLine[],
   method: PaymentMethod,
   cashier: Cashier,
+  targetDate?: string,
 ): Promise<PlaceOrderResult> {
   if (!isPaymentMethod(method)) {
     return { ok: false, error: "Unrecognised payment method." };
@@ -79,7 +87,18 @@ export async function placeOrder(
 
   const db = getDb();
   const placedAt = new Date();
-  const date = businessDate(placedAt);
+  const today = businessDate(placedAt);
+
+  let date = today;
+  if (targetDate !== undefined) {
+    // A Server Action is reachable by direct POST, so the date needs the same
+    // distrust as the total — a future date would let a sale count against
+    // takings that have not happened yet.
+    if (!isBusinessDate(targetDate) || targetDate > today) {
+      return { ok: false, error: "That is not a valid business date." };
+    }
+    date = targetDate;
+  }
 
   const orderRef = db.collection(COLLECTIONS.orders).doc();
   const counterRef = db.collection(COLLECTIONS.counters).doc(date);
