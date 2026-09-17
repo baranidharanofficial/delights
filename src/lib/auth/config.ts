@@ -103,7 +103,13 @@ export function callbackUrl(requestOrigin: string): string {
   return new URL(CALLBACK_PATH, origin).href;
 }
 
-function resolveOrigin(requestOrigin: string): string {
+/**
+ * The same origin resolution `callbackUrl` uses, exposed for anything else
+ * that has to hand out an absolute URL — a QR code's target has to survive
+ * being printed and scanned from outside the request that generated it, so it
+ * cannot lean on a relative path the way a page's own links can.
+ */
+export function resolveOrigin(requestOrigin: string): string {
   if (process.env.APP_ORIGIN) return process.env.APP_ORIGIN;
 
   const productionDomain = process.env.VERCEL_PROJECT_PRODUCTION_URL;

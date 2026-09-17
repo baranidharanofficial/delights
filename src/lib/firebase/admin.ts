@@ -103,4 +103,8 @@ export const COLLECTIONS = {
   expenses: "expenses",
   /** Launch-offer signups, one doc per phone number, keyed by that number. */
   launchSignups: "launchSignups",
+  /** One doc per generated QR code, keyed by its own auto id. */
+  qrCodes: "qrCodes",
+  /** Append-only log of every scan a QR code received. */
+  qrScans: "qrScans",
 } as const;

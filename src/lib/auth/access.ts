@@ -57,6 +57,7 @@ export const POS_SECTIONS = [
       { href: "/pos/expenses", label: "Expenses" },
       { href: "/pos/reports", label: "Reports" },
       { href: "/pos/tasks", label: "Board" },
+      { href: "/pos/qr", label: "QR codes" },
     ],
   },
 ] as const satisfies readonly {
