@@ -64,6 +64,27 @@ export default function Home() {
             Get Launch offer
           </Link>
         </div>
+
+        {/* Secondary to the two CTAs above, not competing with them — a plain
+            text link rather than another pill, with just enough weight (the
+            star) to read as a rating action and not a third navigation choice. */}
+        <a
+          href="https://search.google.com/local/writereview?placeid=4943237105128049276"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rise mt-8 inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-foreground"
+          style={{ animationDelay: "0.7s" }}
+        >
+          <svg
+            aria-hidden
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            className="h-4 w-4 text-accent-strong"
+          >
+            <path d="M10 1.5l2.59 5.25 5.79.84-4.19 4.09.99 5.77L10 14.77l-5.18 2.68.99-5.77L1.62 7.59l5.79-.84L10 1.5z" />
+          </svg>
+          Rate us on Google
+        </a>
       </div>
 
       <footer className="rise absolute bottom-8 text-xs tracking-wide text-muted/70">

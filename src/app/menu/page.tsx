@@ -5,6 +5,8 @@ import { getMenu } from "@/lib/shop/menu";
 import { TAX_LABEL, formatMoney } from "@/lib/shop/money";
 import type { Category, MenuItem } from "@/lib/shop/types";
 
+import { SectionNav } from "./section-nav";
+
 export const metadata: Metadata = {
   title: "Menu",
   description: "Everything we bake, and what it costs.",
@@ -75,12 +77,12 @@ function initial(name: string): string {
  * the rows stay even and the gap looks deliberate. It gives way to the real
  * photograph on its own, the moment `imageKey` is set from the menu screen.
  */
-function Thumbnail({ item }: { item: MenuItem }) {
+function Thumbnail({ item, soldOut }: { item: MenuItem; soldOut: boolean }) {
   if (item.imageKey === null) {
     return (
       <div
         aria-hidden
-        className="flex h-40 w-full items-center justify-center border-b border-line bg-[radial-gradient(ellipse_at_center,var(--glow),transparent_70%)]"
+        className="flex h-44 w-full items-center justify-center border-b border-line bg-[radial-gradient(ellipse_at_center,var(--glow),transparent_70%)]"
       >
         <span className="text-5xl font-semibold text-accent/25 select-none">
           {initial(item.name)}
@@ -98,7 +100,9 @@ function Thumbnail({ item }: { item: MenuItem }) {
       src={`/api/images/${item.imageKey}`}
       alt=""
       loading="lazy"
-      className="h-40 w-full object-cover"
+      className={`h-44 w-full object-cover transition-transform duration-500 ${
+        soldOut ? "grayscale" : "group-hover:scale-105"
+      }`}
     />
   );
 }
@@ -111,26 +115,47 @@ export default async function MenuPage() {
     // No `overflow-hidden` here, deliberately. An ancestor that clips becomes
     // the scroll container for anything `sticky` inside it, and since this one
     // never scrolls the section bar would simply slide away with the page. The
-    // glow below is inset on both sides, so there is nothing to clip anyway.
+    // hero below clips itself instead.
     <main className="relative flex flex-1 flex-col">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-[32rem] bg-[radial-gradient(ellipse_at_top,var(--glow),transparent_65%)]"
-      />
-
-      <header className="relative mx-auto flex w-full max-w-5xl flex-col items-center px-6 pt-16 text-center">
+      {/* Full-bleed photo banner. Fixed heights rather than an aspect ratio —
+          this needs to read as a strip of the page at any width, not a photo
+          that happens to be here, and an aspect ratio on a very wide viewport
+          would blow it out of proportion with everything below it. */}
+      <div className="relative h-[38vh] min-h-70 w-full overflow-hidden sm:h-[46vh]">
         <Image
-          src="/Logo.png"
+          src="/menu-hero.jpg"
           alt=""
-          width={72}
-          height={72}
+          fill
           priority
-          className="rounded-2xl shadow-[0_10px_26px_-10px_rgba(239,48,0,0.5)]"
+          sizes="100vw"
+          className="object-cover"
         />
-        <p className="mt-8 text-xs font-medium tracking-[0.35em] text-accent-strong uppercase">
-          Our menu
-        </p>
-      </header>
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-linear-to-t from-background via-background/55 to-black/25"
+        />
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,transparent_40%,var(--background)_100%)] opacity-60"
+        />
+
+        <header className="relative mx-auto flex h-full w-full max-w-5xl flex-col items-center justify-end px-6 pb-8 text-center">
+          <Image
+            src="/Logo.png"
+            alt=""
+            width={64}
+            height={64}
+            priority
+            className="rounded-2xl shadow-[0_10px_26px_-10px_rgba(239,48,0,0.5)]"
+          />
+          <p className="mt-6 text-xs font-medium tracking-[0.35em] text-accent-strong uppercase">
+            Our menu
+          </p>
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+            Everything we bake
+          </h1>
+        </header>
+      </div>
 
       {sections.length === 0 ? (
         <p className="mx-auto mt-20 w-full max-w-5xl px-6 pb-24 text-center text-base text-muted">
@@ -144,21 +169,15 @@ export default async function MenuPage() {
               menu — a strip floating at the content width reads as a stray card. */}
           <nav
             aria-label="Menu sections"
-            className="sticky top-0 z-10 mt-12 border-b border-line bg-background/85 backdrop-blur"
+            className="sticky top-0 z-10 border-b border-line bg-background/85 backdrop-blur"
           >
             <div className="mx-auto w-full max-w-5xl overflow-x-auto px-6 py-3">
-              <ul className="flex gap-2">
-                {sections.map(({ category }) => (
-                  <li key={category.id}>
-                    <a
-                      href={`#category-${category.id}`}
-                      className="block rounded-full border border-line px-4 py-1.5 text-sm whitespace-nowrap text-muted transition-colors hover:border-accent/60 hover:text-foreground"
-                    >
-                      {category.name}
-                    </a>
-                  </li>
-                ))}
-              </ul>
+              <SectionNav
+                sections={sections.map(({ category }) => ({
+                  id: `category-${category.id}`,
+                  name: category.name,
+                }))}
+              />
             </div>
           </nav>
 
@@ -174,29 +193,36 @@ export default async function MenuPage() {
                   {category.name}
                 </h2>
 
-                <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                   {sectionItems.map((item) => {
                     const soldOut = isSoldOut(item);
 
                     return (
                       <li
                         key={item.id}
-                        className={`flex flex-col overflow-hidden rounded-xl border border-line bg-surface ${
-                          soldOut ? "opacity-50" : ""
+                        className={`group relative flex flex-col overflow-hidden rounded-2xl border border-line bg-surface transition-all duration-300 ${
+                          soldOut
+                            ? ""
+                            : "hover:-translate-y-1 hover:border-accent/50 hover:shadow-[0_16px_32px_-18px_rgba(51,33,14,0.35)]"
                         }`}
                       >
-                        <Thumbnail item={item} />
-
-                        <div className="flex flex-1 items-baseline justify-between gap-4 p-4">
-                          <h3 className="text-base leading-6 font-medium">
-                            {item.name}
-                          </h3>
-                          {soldOut ? (
-                            <span className="text-[0.65rem] tracking-wider whitespace-nowrap text-muted uppercase">
+                        <div className="relative overflow-hidden">
+                          <Thumbnail item={item} soldOut={soldOut} />
+                          {soldOut && (
+                            <span className="absolute top-3 right-3 rounded-full bg-background/90 px-3 py-1 text-[0.65rem] font-medium tracking-wider text-muted uppercase shadow-sm">
                               Sold out
                             </span>
-                          ) : (
-                            <span className="text-base whitespace-nowrap text-accent-strong">
+                          )}
+                        </div>
+
+                        <div className="flex flex-1 items-baseline justify-between gap-4 p-4">
+                          <h3
+                            className={`text-base leading-6 font-medium ${soldOut ? "text-muted" : ""}`}
+                          >
+                            {item.name}
+                          </h3>
+                          {!soldOut && (
+                            <span className="text-base font-medium whitespace-nowrap text-accent-strong">
                               {priceLabel(item.price)}
                             </span>
                           )}
