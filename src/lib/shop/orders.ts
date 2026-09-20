@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  FieldValue,
   Timestamp,
   type DocumentSnapshot,
   type DocumentReference,
@@ -9,7 +10,8 @@ import {
 import { COLLECTIONS, getDb } from "@/lib/firebase/admin";
 
 import { businessDate, isBusinessDate } from "./dates";
-import { TAX_LABEL, TAX_RATE, taxOn } from "./money";
+import { checkCoupon, normalizePhone } from "./launch-signups";
+import { formatMoney, TAX_LABEL, TAX_RATE, taxOn } from "./money";
 import {
   emptyKitchen,
   isPaymentMethod,
@@ -69,12 +71,19 @@ function aggregate(lines: OrderRequestLine[]): Map<string, number> {
  * in, so the audit trail (and the receipt sequence, scoped per business date)
  * stays honest about when the record was made even as `businessDate` says
  * which day's books it counts against.
+ *
+ * `couponPhone`, if given, is a launch-offer number the cashier typed in. It is
+ * read and redeemed inside the same transaction as the sale: the discount and
+ * the coupon being spent are one fact, not two separate writes that could land
+ * on either side of a crash and leave the coupon marked used with no order to
+ * show for it, or spent twice against two different sales.
  */
 export async function placeOrder(
   requestLines: OrderRequestLine[],
   method: PaymentMethod,
   cashier: Cashier,
   targetDate?: string,
+  couponPhone?: string,
 ): Promise<PlaceOrderResult> {
   if (!isPaymentMethod(method)) {
     return { ok: false, error: "Unrecognised payment method." };
@@ -100,6 +109,18 @@ export async function placeOrder(
     date = targetDate;
   }
 
+  // Normalised the same way the claim form does, so "98765 43210" and
+  // "+91 98765 43210" find the same signup — trusted no further than that,
+  // since a Server Action takes this straight off whatever the browser sent.
+  let couponRef: DocumentReference | null = null;
+  if (couponPhone !== undefined && couponPhone.trim() !== "") {
+    const normalized = normalizePhone(couponPhone);
+    if (normalized === null) {
+      return { ok: false, error: "That is not a valid mobile number for a coupon." };
+    }
+    couponRef = db.collection(COLLECTIONS.launchSignups).doc(normalized);
+  }
+
   const orderRef = db.collection(COLLECTIONS.orders).doc();
   const counterRef = db.collection(COLLECTIONS.counters).doc(date);
   const itemRefs: DocumentReference[] = [...wanted.keys()].map((id) =>
@@ -109,10 +130,13 @@ export async function placeOrder(
   try {
     return await db.runTransaction(async (transaction) => {
       // Firestore requires every read before the first write.
-      const [counterSnapshot, ...itemSnapshots] = await transaction.getAll(
+      const [counterSnapshot, ...rest] = await transaction.getAll(
         counterRef,
         ...itemRefs,
+        ...(couponRef ? [couponRef] : []),
       );
+      const itemSnapshots = couponRef ? rest.slice(0, -1) : rest;
+      const couponSnapshot = couponRef ? rest[rest.length - 1] : null;
 
       const lines: OrderLine[] = [];
       const stockWrites: { ref: DocumentReference; stock: number }[] = [];
@@ -178,8 +202,26 @@ export async function placeOrder(
       }
 
       const subtotal = lines.reduce((sum, line) => sum + line.lineTotal, 0);
+
+      // Checked after the items but before anything is written: a coupon that
+      // fails leaves the whole sale unrung rather than going through undiscounted.
+      let discount: { amount: number; couponPhone: string } | null = null;
+      if (couponRef !== null && couponSnapshot !== null) {
+        const check = checkCoupon(couponSnapshot);
+        if (!check.ok) {
+          return { ok: false as const, error: check.error };
+        }
+        if (subtotal < check.minOrder) {
+          return {
+            ok: false as const,
+            error: `That coupon needs an order of at least ${formatMoney(check.minOrder)}.`,
+          };
+        }
+        discount = { amount: check.discountAmount, couponPhone: couponRef.id };
+      }
+
       const tax = taxOn(subtotal);
-      const total = subtotal + tax;
+      const total = Math.max(0, subtotal + tax - (discount?.amount ?? 0));
 
       // Anything other than a whole number here — a missing doc on the day's
       // first sale, or a hand-edit in the console — restarts the day at 1
@@ -201,6 +243,7 @@ export async function placeOrder(
         tax,
         taxRate: TAX_RATE,
         taxLabel: TAX_LABEL,
+        discount,
         total,
         method,
         cashier,
@@ -212,6 +255,12 @@ export async function placeOrder(
       for (const { ref, stock } of stockWrites) {
         transaction.update(ref, { stock });
       }
+      if (couponRef !== null && discount !== null) {
+        transaction.update(couponRef, {
+          redeemedAt: FieldValue.serverTimestamp(),
+          redeemedBy: cashier,
+        });
+      }
       transaction.set(orderRef, {
         reference,
         businessDate: date,
@@ -221,6 +270,7 @@ export async function placeOrder(
         tax,
         taxRate: TAX_RATE,
         taxLabel: TAX_LABEL,
+        discount,
         total,
         method,
         cashier,
@@ -291,6 +341,19 @@ function readKitchen(data: FirebaseFirestore.DocumentData): KitchenState {
   return { lines, completed: readStamp(kitchen.completed) };
 }
 
+function readDiscount(
+  data: FirebaseFirestore.DocumentData,
+): { amount: number; couponPhone: string } | null {
+  const discount = data.discount;
+  if (!discount || typeof discount !== "object") return null;
+
+  const amount = discount.amount;
+  const couponPhone = discount.couponPhone;
+  if (typeof amount !== "number" || typeof couponPhone !== "string") return null;
+
+  return { amount, couponPhone };
+}
+
 function readOrder(doc: DocumentSnapshot): Order | null {
   const data = doc.data();
   if (!data) return null;
@@ -310,6 +373,7 @@ function readOrder(doc: DocumentSnapshot): Order | null {
     tax: Number(data.tax) || 0,
     taxRate: typeof data.taxRate === "number" ? data.taxRate : TAX_RATE,
     taxLabel: typeof data.taxLabel === "string" ? data.taxLabel : TAX_LABEL,
+    discount: readDiscount(data),
     total: Number(data.total) || 0,
     method: isPaymentMethod(data.method) ? data.method : "Cash",
     cashier: {

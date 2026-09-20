@@ -1,13 +1,22 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 
-import { LAUNCH_CAP_LABEL, LAUNCH_OFFER_LABEL, MAX_SIGNUPS } from "@/lib/shop/launch-offer";
+import {
+  FLAT_DISCOUNT_CAP_LABEL,
+  FLAT_DISCOUNT_OFFER_LABEL,
+  FLAT_DISCOUNT_SHORT_LABEL,
+  FLAT_DISCOUNT_SIGNUPS,
+  LAUNCH_CAP_LABEL,
+  LAUNCH_OFFER_LABEL,
+  MAX_SIGNUPS,
+  TOTAL_SIGNUPS,
+} from "@/lib/shop/launch-offer";
 
 import ClaimForm from "./claim-form";
 
 export const metadata: Metadata = {
   title: `Launch day — ${LAUNCH_OFFER_LABEL}`,
-  description: `Leave your number and get a code for ${LAUNCH_OFFER_LABEL} on our launch day. Open to ${LAUNCH_CAP_LABEL} only.`,
+  description: `Leave your number and get a code for ${LAUNCH_OFFER_LABEL} or ${FLAT_DISCOUNT_OFFER_LABEL} on our launch day. Open to ${TOTAL_SIGNUPS} numbers only.`,
 };
 
 /**
@@ -26,7 +35,7 @@ const STEPS = [
   {
     icon: "🥤",
     title: "Show it at the counter",
-    body: "Any milkshake on the menu, free, on launch day.",
+    body: `A free milkshake, or ${FLAT_DISCOUNT_SHORT_LABEL} — whichever you landed.`,
   },
 ];
 
@@ -81,7 +90,7 @@ export default function LaunchPage() {
         >
           <span className="badge-pulse h-2 w-2 rounded-full bg-accent-strong" aria-hidden />
           <span className="text-xs font-semibold tracking-wide text-accent-strong">
-            Only {MAX_SIGNUPS} spots — first come, first served
+            {MAX_SIGNUPS} free, then {FLAT_DISCOUNT_SIGNUPS} at {FLAT_DISCOUNT_SHORT_LABEL}
           </span>
         </div>
 
@@ -103,9 +112,10 @@ export default function LaunchPage() {
           className="rise mt-5 max-w-md text-base leading-7 text-muted"
           style={{ animationDelay: "0.55s" }}
         >
-          We open soon, and the milkshakes are on us for{" "}
-          {LAUNCH_CAP_LABEL}. Leave yours and we&apos;ll hand you a code for one
-          free milkshake any one on the menu.
+          We open soon, and {LAUNCH_CAP_LABEL} get {LAUNCH_OFFER_LABEL} on
+          launch day — {FLAT_DISCOUNT_CAP_LABEL} get{" "}
+          {FLAT_DISCOUNT_OFFER_LABEL} instead. Leave your number and
+          we&apos;ll tell you which one is yours.
         </p>
 
         <div className="rise mt-10 w-full" style={{ animationDelay: "0.7s" }}>
@@ -134,10 +144,10 @@ export default function LaunchPage() {
           className="rise mt-14 max-w-md text-xs leading-5 text-muted/70"
           style={{ animationDelay: "1s" }}
         >
-          One code per number, one free milkshake per code, on launch day, in
-          store open to{" "}
-          {LAUNCH_CAP_LABEL}. The rest of the menu is at its usual price, and
-          we&apos;ll only use your number to tell you when we open.
+          One code per number, redeemed once, on launch day, in store — open
+          to {TOTAL_SIGNUPS} numbers total. The rest of the menu is at its
+          usual price, and we&apos;ll only use your number to tell you when we
+          open.
         </p>
       </div>
     </main>

@@ -8,6 +8,7 @@ import {
   formatDayMonth,
   shiftBusinessDate,
 } from "@/lib/shop/dates";
+import { FLAT_DISCOUNT_AMOUNT, FLAT_DISCOUNT_MIN_ORDER } from "@/lib/shop/launch-offer";
 import { formatMoney, TAX_LABEL, taxOn } from "@/lib/shop/money";
 import { printReceipt } from "@/lib/shop/receipt";
 import {
@@ -40,6 +41,7 @@ function testOrder(): Order {
     tax,
     taxRate: tax / subtotal,
     taxLabel: TAX_LABEL,
+    discount: null,
     total: subtotal + tax,
     method: "Cash",
     cashier: { email: "", name: "Test Print" },
@@ -129,6 +131,7 @@ export default function PosTerminal({
   const [categoryId, setCategoryId] = useState<string | "all">("all");
   const [query, setQuery] = useState("");
   const [method, setMethod] = useState<PaymentMethod>("Cash");
+  const [couponPhone, setCouponPhone] = useState("");
   const [completed, setCompleted] = useState<Order | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showPastOrders, setShowPastOrders] = useState(false);
@@ -162,7 +165,15 @@ export default function PosTerminal({
     0,
   );
   const tax = taxOn(subtotal);
-  const total = subtotal + tax;
+  // A courtesy preview, not enforcement — the server is the one that actually
+  // knows whether this number has an unspent coupon, same as stock limits
+  // above. If the number turns out invalid or already used, checkout fails and
+  // nothing here was ever charged.
+  const couponDiscount =
+    couponPhone.trim() !== "" && subtotal >= FLAT_DISCOUNT_MIN_ORDER
+      ? FLAT_DISCOUNT_AMOUNT
+      : 0;
+  const total = Math.max(0, subtotal + tax - couponDiscount);
   const itemCount = lines.reduce((count, line) => count + line.quantity, 0);
 
   function adjust(id: string, delta: number) {
@@ -189,6 +200,7 @@ export default function PosTerminal({
 
   function clearOrder() {
     setQuantities({});
+    setCouponPhone("");
     setCompleted(null);
     setError(null);
   }
@@ -202,10 +214,11 @@ export default function PosTerminal({
     }));
 
     startCharging(async () => {
-      const result = await checkout(request, method, date);
+      const result = await checkout(request, method, date, couponPhone.trim() || undefined);
       if (result.ok) {
         setCompleted(result.order);
         setQuantities({});
+        setCouponPhone("");
         setError(null);
         printReceipt(result.order);
       } else {
@@ -401,9 +414,27 @@ export default function PosTerminal({
             </div>
 
             <footer className="space-y-4 border-t border-white/10 px-5 py-4">
+              <label className="block text-xs text-muted">
+                Launch coupon (optional)
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  value={couponPhone}
+                  onChange={(event) => setCouponPhone(event.target.value)}
+                  placeholder="98765 43210"
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-foreground placeholder:text-muted/60 focus:border-accent/40 focus:outline-none"
+                />
+              </label>
+
               <dl className="space-y-1.5 text-sm">
                 <Row label="Subtotal" value={formatMoney(subtotal)} />
                 <Row label={TAX_LABEL} value={formatMoney(tax)} />
+                {couponDiscount > 0 && (
+                  <Row
+                    label="Launch coupon"
+                    value={`− ${formatMoney(couponDiscount)}`}
+                  />
+                )}
                 <div className="flex items-baseline justify-between pt-1.5 text-base font-semibold">
                   <dt>Total</dt>
                   <dd className="tabular-nums text-accent">
@@ -567,6 +598,12 @@ function Receipt({
         <dl className="space-y-1.5 text-sm">
           <Row label="Subtotal" value={formatMoney(order.subtotal)} />
           <Row label={order.taxLabel} value={formatMoney(order.tax)} />
+          {order.discount && (
+            <Row
+              label="Launch coupon"
+              value={`− ${formatMoney(order.discount.amount)}`}
+            />
+          )}
           <div className="flex items-baseline justify-between pt-1.5 text-base font-semibold">
             <dt>Paid</dt>
             <dd className="tabular-nums text-accent">

@@ -18,6 +18,8 @@ export type CodeRow = {
   phone: string;
   phoneLabel: string;
   code: string;
+  /** `Milkshake` or `₹50.00 off ₹200.00+` — which tier this signup landed in. */
+  offerLabel: string;
   claimedLabel: string;
   redeemed: { atLabel: string; byLabel: string } | null;
 };
@@ -48,6 +50,9 @@ function CodeRowItem({ row }: { row: CodeRow }) {
           {row.code}
         </span>
         <span className="text-xs text-muted tabular-nums">{row.phoneLabel}</span>
+        <span className="rounded-full border border-white/10 px-2 py-0.5 text-[0.65rem] font-medium text-muted">
+          {row.offerLabel}
+        </span>
         <span className="text-xs text-muted/60">
           claimed {row.claimedLabel}
         </span>

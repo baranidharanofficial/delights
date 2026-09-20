@@ -26,6 +26,7 @@ export async function checkout(
   lines: OrderRequestLine[],
   method: PaymentMethod,
   date: string,
+  couponPhone?: string,
 ): Promise<PlaceOrderResult> {
   const user = await requireSection("/pos");
 
@@ -34,6 +35,7 @@ export async function checkout(
     method,
     { email: user.email, name: user.name },
     date,
+    couponPhone,
   );
 
   if (result.ok) {

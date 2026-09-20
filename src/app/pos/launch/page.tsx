@@ -1,11 +1,12 @@
 import { requireSection } from "@/lib/auth/session";
 import { businessDate, formatDayMonth, formatIstTime } from "@/lib/shop/dates";
-import { LAUNCH_OFFER_LABEL, MAX_SIGNUPS } from "@/lib/shop/launch-offer";
+import { FLAT_DISCOUNT_SIGNUPS, MAX_SIGNUPS } from "@/lib/shop/launch-offer";
 import {
   formatPhone,
   getLaunchSignups,
   type LaunchSignup,
 } from "@/lib/shop/launch-signups";
+import { formatMoney } from "@/lib/shop/money";
 
 import CodeList, { type CodeRow } from "./code-list";
 
@@ -22,11 +23,19 @@ function stamp(epochMs: number): string {
   return `${formatDayMonth(businessDate(new Date(epochMs)))} · ${formatIstTime(epochMs)}`;
 }
 
+/** `Milkshake` or `₹50.00 off ₹200.00+` — the row's offer, in one glance. */
+function offerLabel(offer: LaunchSignup["offer"]): string {
+  return offer.tier === "milkshake"
+    ? "Milkshake"
+    : `${formatMoney(offer.discountAmount)} off ${formatMoney(offer.minOrder)}+`;
+}
+
 function toRow(signup: LaunchSignup): CodeRow {
   return {
     phone: signup.phone,
     phoneLabel: formatPhone(signup.phone),
     code: signup.code,
+    offerLabel: offerLabel(signup.offer),
     // A signup read back in the instant before its `serverTimestamp` resolves
     // has no time yet, which arrives here as 0 rather than as a date in 1970.
     claimedLabel: signup.claimedAtMs === 0 ? "—" : stamp(signup.claimedAtMs),
@@ -45,7 +54,8 @@ export default async function LaunchCodesPage() {
   const user = await requireSection("/pos/launch");
   const signups = await getLaunchSignups();
 
-  const claimed = signups.length;
+  const milkshakes = signups.filter((s) => s.offer.tier === "milkshake").length;
+  const coupons = signups.filter((s) => s.offer.tier === "flat_discount").length;
   const redeemed = signups.filter(
     (signup) => signup.redeemedAtMs !== null,
   ).length;
@@ -58,19 +68,20 @@ export default async function LaunchCodesPage() {
           className="grid grid-cols-2 gap-3 sm:grid-cols-4"
         >
           <Tile
-            label="Claimed"
-            value={`${claimed} / ${MAX_SIGNUPS}`}
-            hint={claimed >= MAX_SIGNUPS ? "List is full" : undefined}
+            label="Milkshakes"
+            value={`${milkshakes} / ${MAX_SIGNUPS}`}
+            hint={milkshakes >= MAX_SIGNUPS ? "Tier full" : undefined}
+          />
+          <Tile
+            label="Coupons"
+            value={`${coupons} / ${FLAT_DISCOUNT_SIGNUPS}`}
+            hint={coupons >= FLAT_DISCOUNT_SIGNUPS ? "Tier full" : undefined}
           />
           <Tile label="Redeemed" value={String(redeemed)} />
           <Tile
             label="Still to come"
-            value={String(claimed - redeemed)}
-            hint="Codes out, milkshake not yet handed over"
-          />
-          <Tile
-            label="Codes left"
-            value={String(Math.max(0, MAX_SIGNUPS - claimed))}
+            value={String(milkshakes + coupons - redeemed)}
+            hint="Codes out, offer not yet handed over"
           />
         </section>
 
@@ -81,7 +92,8 @@ export default async function LaunchCodesPage() {
           <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-white/10 px-5 py-3">
             <h2 className="text-sm font-semibold tracking-wide">Codes</h2>
             <p className="text-[0.7rem] text-muted/70">
-              Each one is good for {LAUNCH_OFFER_LABEL}, once.
+              Each one is good once — a coupon can also be redeemed straight at
+              checkout.
             </p>
           </div>
 

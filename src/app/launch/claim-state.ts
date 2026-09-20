@@ -1,3 +1,5 @@
+import type { OfferDetails } from "@/lib/shop/launch-offer";
+
 /**
  * What the claim form shows after a submission.
  *
@@ -16,6 +18,8 @@ export type ClaimState =
       phone: string;
       /** This number was already on the list; the code is the original one. */
       returning: boolean;
+      /** Which tier this number landed in, and the terms that come with it. */
+      offer: OfferDetails;
     };
 
 export const IDLE_CLAIM: ClaimState = { status: "idle" };

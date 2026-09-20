@@ -35,5 +35,6 @@ export async function claimOffer(
     code: result.code,
     phone: formatPhone(result.phone),
     returning: result.returning,
+    offer: result.offer,
   };
 }

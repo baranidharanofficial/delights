@@ -48,3 +48,46 @@ export const MAX_SIGNUPS = 50;
  * page, never in a type error or a lint warning.
  */
 export const LAUNCH_CAP_LABEL = `the first ${MAX_SIGNUPS} numbers`;
+
+/**
+ * The second tier: once the milkshakes are gone, the next signups get money
+ * off a real order instead of one specific drink. That is what lets the offer
+ * keep going after the milkshake allocation itself is spoken for, without
+ * promising a drink the shop never budgeted for.
+ */
+export const FLAT_DISCOUNT_SIGNUPS = 150;
+
+/** Paise. ₹50, taken off the bill rather than off one item. */
+export const FLAT_DISCOUNT_AMOUNT = 5000;
+
+/** Paise. ₹200 — the coupon needs an order at least this big to apply. */
+export const FLAT_DISCOUNT_MIN_ORDER = 20000;
+
+/**
+ * Every signup the launch page will take, across both tiers — the number
+ * `claimLaunchOffer` turns people away at once the second tier is also full.
+ */
+export const TOTAL_SIGNUPS = MAX_SIGNUPS + FLAT_DISCOUNT_SIGNUPS;
+
+/** `₹50 off orders above ₹200` — the second tier's offer, spelled out. */
+export const FLAT_DISCOUNT_OFFER_LABEL = "₹50 off orders above ₹200";
+
+/** `₹50 off ₹200+` — the same offer, for spots too tight for the long form. */
+export const FLAT_DISCOUNT_SHORT_LABEL = "₹50 off ₹200+";
+
+/** `the 150 after that` — the second tier's cap, as the page states it. */
+export const FLAT_DISCOUNT_CAP_LABEL = `the ${FLAT_DISCOUNT_SIGNUPS} after that`;
+
+/**
+ * Which tier a signup landed in, and the terms that come with it.
+ *
+ * Carried on `ClaimResult` and `LaunchSignup` rather than re-derived from
+ * position in the list: a signup's tier is decided once, at claim time, so it
+ * has to keep reading the same way even after later signups shift where it
+ * would fall in a recount.
+ */
+export type OfferTier = "milkshake" | "flat_discount";
+
+export type OfferDetails =
+  | { tier: "milkshake"; discountPercent: number }
+  | { tier: "flat_discount"; discountAmount: number; minOrder: number };

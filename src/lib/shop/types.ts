@@ -80,6 +80,8 @@ export type Order = {
   /** Snapshotted alongside the amount so old orders survive a rate change. */
   taxRate: number;
   taxLabel: string;
+  /** A launch-offer coupon applied to this sale. `null` on an ordinary order. */
+  discount: { amount: number; couponPhone: string } | null;
   total: number;
   method: PaymentMethod;
   cashier: { email: string; name: string | null };

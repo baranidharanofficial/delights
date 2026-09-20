@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { LAUNCH_OFFER_LABEL } from "@/lib/shop/launch-offer";
+import { formatMoney } from "@/lib/shop/money";
 
 import { claimOffer } from "./actions";
 import { IDLE_CLAIM, type ClaimState } from "./claim-state";
@@ -46,9 +47,21 @@ function Claimed({ state }: { state: Extract<ClaimState, { status: "claimed" }> 
       </p>
 
       <p className="mt-4 text-sm leading-6 text-muted">
-        Show this code at the counter on launch day for{" "}
-        <span className="text-foreground">{LAUNCH_OFFER_LABEL}</span>. Saved
-        against {state.phone}.
+        {state.offer.tier === "milkshake" ? (
+          <>
+            Show this code at the counter on launch day for{" "}
+            <span className="text-foreground">{LAUNCH_OFFER_LABEL}</span>.
+          </>
+        ) : (
+          <>
+            Show this code at the counter for{" "}
+            <span className="text-foreground">
+              {formatMoney(state.offer.discountAmount)} off
+            </span>{" "}
+            any order of {formatMoney(state.offer.minOrder)} or more.
+          </>
+        )}{" "}
+        Saved against {state.phone}.
       </p>
     </div>
   );

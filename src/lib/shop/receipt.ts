@@ -111,6 +111,14 @@ export function printReceipt(order: Order) {
       <td class="label">${order.taxLabel}</td>
       <td class="value">${formatMoney(order.tax)}</td>
     </tr>
+    ${
+      order.discount
+        ? `<tr>
+      <td class="label">Launch coupon</td>
+      <td class="value">- ${formatMoney(order.discount.amount)}</td>
+    </tr>`
+        : ""
+    }
   </table>
   <div class="divider"></div>
   <table class="totals grand-total">

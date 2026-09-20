@@ -5,7 +5,15 @@ import { FieldValue, Timestamp, type DocumentSnapshot } from "firebase-admin/fir
 import { COLLECTIONS, getDb } from "@/lib/firebase/admin";
 
 import { formatIstTime } from "./dates";
-import { LAUNCH_DISCOUNT_PERCENT, MAX_SIGNUPS } from "./launch-offer";
+import {
+  FLAT_DISCOUNT_AMOUNT,
+  FLAT_DISCOUNT_MIN_ORDER,
+  LAUNCH_DISCOUNT_PERCENT,
+  MAX_SIGNUPS,
+  TOTAL_SIGNUPS,
+  type OfferDetails,
+  type OfferTier,
+} from "./launch-offer";
 
 /**
  * The launch-day milkshake offer.
@@ -77,7 +85,7 @@ function generateCode(): string {
 }
 
 export type ClaimResult =
-  | { ok: true; code: string; phone: string; returning: boolean }
+  | { ok: true; code: string; phone: string; returning: boolean; offer: OfferDetails }
   | { ok: false; error: string };
 
 function readCode(snapshot: DocumentSnapshot): string | null {
@@ -88,6 +96,38 @@ function readCode(snapshot: DocumentSnapshot): string | null {
 /** Epoch milliseconds, or `null` for a field that is absent or still pending. */
 function readMillis(value: unknown): number | null {
   return value instanceof Timestamp ? value.toMillis() : null;
+}
+
+/**
+ * The offer a signup was stamped with, read back off its document.
+ *
+ * `tier` postdates `discountPercent` — every signup claimed before this tier
+ * existed has the field but not the tag, and reads back as `"milkshake"`
+ * because that was the only offer there was to give it.
+ */
+function readOffer(snapshot: DocumentSnapshot): OfferDetails | null {
+  const data = snapshot.data();
+  if (!data) return null;
+
+  if (data.tier === "flat_discount") {
+    return {
+      tier: "flat_discount",
+      discountAmount:
+        typeof data.discountAmount === "number"
+          ? data.discountAmount
+          : FLAT_DISCOUNT_AMOUNT,
+      minOrder:
+        typeof data.minOrder === "number" ? data.minOrder : FLAT_DISCOUNT_MIN_ORDER,
+    };
+  }
+
+  return {
+    tier: "milkshake",
+    discountPercent:
+      typeof data.discountPercent === "number"
+        ? data.discountPercent
+        : LAUNCH_DISCOUNT_PERCENT,
+  };
 }
 
 /** Whoever was signed in at the till, as it was written. */
@@ -107,17 +147,21 @@ function readActor(value: unknown): Actor | null {
  * come back on launch morning to find the code again. The phone number is the
  * document id precisely so that the second submission hands back the *same*
  * code rather than minting a rival one, and `returning` lets the page say so.
+ * A returning signup keeps whatever tier it was originally given, even if a
+ * recount today would put that position on the other side of the boundary.
  *
  * The capacity count sits outside the transaction on purpose. A count read
  * inside one takes a lock on every document it matched — the whole collection,
  * here — which would put every simultaneous signup into a queue behind every
  * other. Outside, it is a stale number, so claims arriving together right at
- * the boundary can settle a few past `MAX_SIGNUPS`.
+ * a tier's boundary can settle a few past it — a handful of milkshakes handed
+ * out as the coupon tier opens, or a handful of coupons handed out after the
+ * list is meant to be full.
  *
  * That is the accepted trade rather than an oversight. An exact cap wants a
  * single counter document incremented inside the transaction, which locks one
  * document instead of the collection; worth adding the day the overshoot costs
- * more than the handful of extra milkshakes it stands for.
+ * more than the handful of mispriced offers it stands for.
  */
 export async function claimLaunchOffer(input: string): Promise<ClaimResult> {
   const phone = normalizePhone(input);
@@ -130,32 +174,49 @@ export async function claimLaunchOffer(input: string): Promise<ClaimResult> {
   const ref = collection.doc(phone);
 
   const total = (await collection.count().get()).data().count;
-  const atCapacity = total >= MAX_SIGNUPS;
+  const tier: OfferTier | null =
+    total < MAX_SIGNUPS
+      ? "milkshake"
+      : total < TOTAL_SIGNUPS
+        ? "flat_discount"
+        : null;
 
   return db.runTransaction(async (transaction) => {
     const snapshot = await transaction.get(ref);
 
     const existing = readCode(snapshot);
     if (existing !== null) {
-      return { ok: true, code: existing, phone, returning: true };
+      const offer = readOffer(snapshot) ?? {
+        tier: "milkshake" as const,
+        discountPercent: LAUNCH_DISCOUNT_PERCENT,
+      };
+      return { ok: true, code: existing, phone, returning: true, offer };
     }
 
-    if (atCapacity) {
+    if (tier === null) {
       return {
         ok: false,
-        error: `All ${MAX_SIGNUPS} free milkshakes are taken. Come by on the day anyway — we'll be making plenty.`,
+        error: `All ${TOTAL_SIGNUPS} launch offers are taken. Come by on the day anyway — we'll be making plenty.`,
       };
     }
 
     const code = generateCode();
+    const offer: OfferDetails =
+      tier === "milkshake"
+        ? { tier, discountPercent: LAUNCH_DISCOUNT_PERCENT }
+        : { tier, discountAmount: FLAT_DISCOUNT_AMOUNT, minOrder: FLAT_DISCOUNT_MIN_ORDER };
+
     transaction.set(ref, {
       phone,
       code,
       claimedAt: FieldValue.serverTimestamp(),
-      discountPercent: LAUNCH_DISCOUNT_PERCENT,
+      tier,
+      ...(offer.tier === "milkshake"
+        ? { discountPercent: offer.discountPercent }
+        : { discountAmount: offer.discountAmount, minOrder: offer.minOrder }),
     });
 
-    return { ok: true, code, phone, returning: false };
+    return { ok: true, code, phone, returning: false, offer };
   });
 }
 
@@ -166,7 +227,8 @@ export type LaunchSignup = {
   phone: string;
   code: string;
   claimedAtMs: number;
-  /** `null` until the milkshake is actually handed over. */
+  offer: OfferDetails;
+  /** `null` until the offer is actually handed over. */
   redeemedAtMs: number | null;
   redeemedBy: Actor | null;
 };
@@ -178,15 +240,15 @@ export type RedemptionResult = { ok: true } | { ok: false; error: string };
  *
  * Nothing on the public site reads this; it backs `/pos/launch`. The whole list
  * comes back in one read rather than being searched in Firestore, because
- * `MAX_SIGNUPS` bounds it at a hundred rows: cheaper than a query, no index to
- * keep, and it lets the screen filter as the cashier types instead of once per
- * keystroke over the network.
+ * `TOTAL_SIGNUPS` bounds it at two hundred rows: cheaper than a query, no
+ * index to keep, and it lets the screen filter as the cashier types instead of
+ * once per keystroke over the network.
  */
 export async function getLaunchSignups(): Promise<LaunchSignup[]> {
   const snapshot = await getDb()
     .collection(COLLECTIONS.launchSignups)
     .orderBy("claimedAt", "desc")
-    .limit(MAX_SIGNUPS)
+    .limit(TOTAL_SIGNUPS)
     .get();
 
   return snapshot.docs.flatMap((doc) => {
@@ -200,6 +262,10 @@ export async function getLaunchSignups(): Promise<LaunchSignup[]> {
         phone: doc.id,
         code,
         claimedAtMs: readMillis(claimedAt) ?? 0,
+        offer: readOffer(doc) ?? {
+          tier: "milkshake" as const,
+          discountPercent: LAUNCH_DISCOUNT_PERCENT,
+        },
         redeemedAtMs: readMillis(doc.data()?.redeemedAt),
         redeemedBy: readActor(doc.data()?.redeemedBy),
       },
@@ -246,14 +312,48 @@ export async function redeemLaunchOffer(
   });
 }
 
+export type CouponCheck =
+  | { ok: true; discountAmount: number; minOrder: number }
+  | { ok: false; error: string };
+
+/**
+ * Whether a phone number typed in at checkout is really an unspent coupon.
+ *
+ * Exported as a pure check on an already-read snapshot, not a function that
+ * opens its own transaction, because `placeOrder` has to redeem the coupon in
+ * the very same transaction as the sale it discounts — done separately, a
+ * doubled tap or a second till could ring the discount against two different
+ * orders before either write lands.
+ */
+export function checkCoupon(snapshot: DocumentSnapshot): CouponCheck {
+  if (!snapshot.exists) {
+    return { ok: false, error: "That number has no launch coupon on file." };
+  }
+
+  const offer = readOffer(snapshot);
+  if (offer === null || offer.tier !== "flat_discount") {
+    return {
+      ok: false,
+      error:
+        "That number's launch offer is a free milkshake, not a coupon — redeem it from the launch codes screen instead.",
+    };
+  }
+
+  if (readMillis(snapshot.data()?.redeemedAt) !== null) {
+    return { ok: false, error: "That coupon has already been used." };
+  }
+
+  return { ok: true, discountAmount: offer.discountAmount, minOrder: offer.minOrder };
+}
+
 /**
  * Puts a code back to unused.
  *
  * A counter needs this: one gets tapped against the wrong customer, or the
- * milkshake never gets made. The fields are deleted rather than nulled so an
- * un-redeemed signup is indistinguishable from one that was never touched —
- * this is a hundred-code promotion, and the order itself is what the day is
- * audited on.
+ * milkshake never gets made, or a coupon was applied to an order that was then
+ * voided. The fields are deleted rather than nulled so an un-redeemed signup is
+ * indistinguishable from one that was never touched — this is a two-hundred-code
+ * promotion, and the order itself is what the day is audited on.
  */
 export async function unredeemLaunchOffer(
   phone: string,
