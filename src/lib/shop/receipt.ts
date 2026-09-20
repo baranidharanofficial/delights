@@ -109,13 +109,21 @@ export function printReceipt(order: Order) {
     </tr>
     <tr>
       <td class="label">${order.taxLabel}</td>
-      <td class="value">${formatMoney(order.tax)}</td>
+      <td class="value">${order.taxExempt ? "Waived" : formatMoney(order.tax)}</td>
     </tr>
     ${
       order.discount
         ? `<tr>
       <td class="label">Launch coupon</td>
       <td class="value">- ${formatMoney(order.discount.amount)}</td>
+    </tr>`
+        : ""
+    }
+    ${
+      order.manualDiscount
+        ? `<tr>
+      <td class="label">Discount (${order.manualDiscount.percent}%)</td>
+      <td class="value">- ${formatMoney(order.manualDiscount.amount)}</td>
     </tr>`
         : ""
     }

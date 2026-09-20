@@ -13,6 +13,12 @@ export async function signOut(): Promise<void> {
   redirect(LOGIN_PATH);
 }
 
+export type CheckoutOptions = {
+  couponPhone?: string;
+  taxExempt?: boolean;
+  discountPercent?: number;
+};
+
 /**
  * Takes payment and records the sale.
  *
@@ -20,13 +26,16 @@ export async function signOut(): Promise<void> {
  * computed server-side in `placeOrder` — a Server Action accepts direct POSTs,
  * so nothing the browser says about money is taken on trust. `date` is trusted
  * no further than that either — `placeOrder` re-validates it can't be in the
- * future before it counts against any day's books.
+ * future before it counts against any day's books. The same distrust covers
+ * `taxExempt` and `discountPercent`: the screen the cashier looked at is not
+ * proof of what gets charged, so `placeOrder` recomputes the total from these
+ * flags rather than accepting one.
  */
 export async function checkout(
   lines: OrderRequestLine[],
   method: PaymentMethod,
   date: string,
-  couponPhone?: string,
+  options: CheckoutOptions = {},
 ): Promise<PlaceOrderResult> {
   const user = await requireSection("/pos");
 
@@ -34,8 +43,7 @@ export async function checkout(
     lines,
     method,
     { email: user.email, name: user.name },
-    date,
-    couponPhone,
+    { targetDate: date, ...options },
   );
 
   if (result.ok) {

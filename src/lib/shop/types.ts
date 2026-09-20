@@ -80,8 +80,12 @@ export type Order = {
   /** Snapshotted alongside the amount so old orders survive a rate change. */
   taxRate: number;
   taxLabel: string;
+  /** Cashier turned tax off for this sale. `tax` is already 0 either way — this is what explains why. */
+  taxExempt: boolean;
   /** A launch-offer coupon applied to this sale. `null` on an ordinary order. */
   discount: { amount: number; couponPhone: string } | null;
+  /** A cashier-applied percentage off the bill, independent of any coupon. */
+  manualDiscount: { percent: number; amount: number } | null;
   total: number;
   method: PaymentMethod;
   cashier: { email: string; name: string | null };

@@ -9,7 +9,13 @@ import {
   shiftBusinessDate,
 } from "@/lib/shop/dates";
 import { FLAT_DISCOUNT_AMOUNT, FLAT_DISCOUNT_MIN_ORDER } from "@/lib/shop/launch-offer";
-import { formatMoney, TAX_LABEL, taxOn } from "@/lib/shop/money";
+import {
+  formatMoney,
+  MANUAL_DISCOUNT_MAX_PERCENT,
+  MANUAL_DISCOUNT_MIN_PERCENT,
+  TAX_LABEL,
+  taxOn,
+} from "@/lib/shop/money";
 import { printReceipt } from "@/lib/shop/receipt";
 import {
   emptyKitchen,
@@ -41,7 +47,9 @@ function testOrder(): Order {
     tax,
     taxRate: tax / subtotal,
     taxLabel: TAX_LABEL,
+    taxExempt: false,
     discount: null,
+    manualDiscount: null,
     total: subtotal + tax,
     method: "Cash",
     cashier: { email: "", name: "Test Print" },
@@ -132,6 +140,9 @@ export default function PosTerminal({
   const [query, setQuery] = useState("");
   const [method, setMethod] = useState<PaymentMethod>("Cash");
   const [couponPhone, setCouponPhone] = useState("");
+  const [taxExempt, setTaxExempt] = useState(false);
+  const [discountEnabled, setDiscountEnabled] = useState(false);
+  const [discountPercent, setDiscountPercent] = useState(MANUAL_DISCOUNT_MIN_PERCENT);
   const [completed, setCompleted] = useState<Order | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showPastOrders, setShowPastOrders] = useState(false);
@@ -164,7 +175,7 @@ export default function PosTerminal({
     (sum, line) => sum + line.item.price * line.quantity,
     0,
   );
-  const tax = taxOn(subtotal);
+  const tax = taxExempt ? 0 : taxOn(subtotal);
   // A courtesy preview, not enforcement — the server is the one that actually
   // knows whether this number has an unspent coupon, same as stock limits
   // above. If the number turns out invalid or already used, checkout fails and
@@ -173,7 +184,11 @@ export default function PosTerminal({
     couponPhone.trim() !== "" && subtotal >= FLAT_DISCOUNT_MIN_ORDER
       ? FLAT_DISCOUNT_AMOUNT
       : 0;
-  const total = Math.max(0, subtotal + tax - couponDiscount);
+  const afterCoupon = Math.max(0, subtotal + tax - couponDiscount);
+  const manualDiscountAmount = discountEnabled
+    ? Math.round((afterCoupon * discountPercent) / 100)
+    : 0;
+  const total = Math.max(0, afterCoupon - manualDiscountAmount);
   const itemCount = lines.reduce((count, line) => count + line.quantity, 0);
 
   function adjust(id: string, delta: number) {
@@ -201,6 +216,9 @@ export default function PosTerminal({
   function clearOrder() {
     setQuantities({});
     setCouponPhone("");
+    setTaxExempt(false);
+    setDiscountEnabled(false);
+    setDiscountPercent(MANUAL_DISCOUNT_MIN_PERCENT);
     setCompleted(null);
     setError(null);
   }
@@ -214,11 +232,18 @@ export default function PosTerminal({
     }));
 
     startCharging(async () => {
-      const result = await checkout(request, method, date, couponPhone.trim() || undefined);
+      const result = await checkout(request, method, date, {
+        couponPhone: couponPhone.trim() || undefined,
+        taxExempt: taxExempt || undefined,
+        discountPercent: discountEnabled ? discountPercent : undefined,
+      });
       if (result.ok) {
         setCompleted(result.order);
         setQuantities({});
         setCouponPhone("");
+        setTaxExempt(false);
+        setDiscountEnabled(false);
+        setDiscountPercent(MANUAL_DISCOUNT_MIN_PERCENT);
         setError(null);
         printReceipt(result.order);
       } else {
@@ -426,13 +451,61 @@ export default function PosTerminal({
                 />
               </label>
 
+              <label className="flex items-center gap-2 text-xs text-muted">
+                <input
+                  type="checkbox"
+                  checked={taxExempt}
+                  onChange={(event) => setTaxExempt(event.target.checked)}
+                  className="size-3.5 rounded-sm border-white/20 bg-white/[0.04] accent-accent"
+                />
+                No tax on this order
+              </label>
+
+              <div>
+                <label className="flex items-center gap-2 text-xs text-muted">
+                  <input
+                    type="checkbox"
+                    checked={discountEnabled}
+                    onChange={(event) => setDiscountEnabled(event.target.checked)}
+                    className="size-3.5 rounded-sm border-white/20 bg-white/[0.04] accent-accent"
+                  />
+                  Apply a discount
+                </label>
+
+                {discountEnabled && (
+                  <div className="mt-2 flex items-center gap-3">
+                    <input
+                      type="range"
+                      min={MANUAL_DISCOUNT_MIN_PERCENT}
+                      max={MANUAL_DISCOUNT_MAX_PERCENT}
+                      value={discountPercent}
+                      onChange={(event) => setDiscountPercent(Number(event.target.value))}
+                      aria-label="Discount percentage"
+                      className="h-1.5 flex-1 accent-accent"
+                    />
+                    <span className="w-10 shrink-0 text-right text-sm font-medium tabular-nums text-accent">
+                      {discountPercent}%
+                    </span>
+                  </div>
+                )}
+              </div>
+
               <dl className="space-y-1.5 text-sm">
                 <Row label="Subtotal" value={formatMoney(subtotal)} />
-                <Row label={TAX_LABEL} value={formatMoney(tax)} />
+                <Row
+                  label={TAX_LABEL}
+                  value={taxExempt ? "Waived" : formatMoney(tax)}
+                />
                 {couponDiscount > 0 && (
                   <Row
                     label="Launch coupon"
                     value={`− ${formatMoney(couponDiscount)}`}
+                  />
+                )}
+                {manualDiscountAmount > 0 && (
+                  <Row
+                    label={`Discount (${discountPercent}%)`}
+                    value={`− ${formatMoney(manualDiscountAmount)}`}
                   />
                 )}
                 <div className="flex items-baseline justify-between pt-1.5 text-base font-semibold">
@@ -597,11 +670,20 @@ function Receipt({
       <footer className="space-y-4 border-t border-white/10 px-5 py-4">
         <dl className="space-y-1.5 text-sm">
           <Row label="Subtotal" value={formatMoney(order.subtotal)} />
-          <Row label={order.taxLabel} value={formatMoney(order.tax)} />
+          <Row
+            label={order.taxLabel}
+            value={order.taxExempt ? "Waived" : formatMoney(order.tax)}
+          />
           {order.discount && (
             <Row
               label="Launch coupon"
               value={`− ${formatMoney(order.discount.amount)}`}
+            />
+          )}
+          {order.manualDiscount && (
+            <Row
+              label={`Discount (${order.manualDiscount.percent}%)`}
+              value={`− ${formatMoney(order.manualDiscount.amount)}`}
             />
           )}
           <div className="flex items-baseline justify-between pt-1.5 text-base font-semibold">

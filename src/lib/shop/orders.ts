@@ -11,7 +11,15 @@ import { COLLECTIONS, getDb } from "@/lib/firebase/admin";
 
 import { businessDate, isBusinessDate } from "./dates";
 import { checkCoupon, normalizePhone } from "./launch-signups";
-import { formatMoney, TAX_LABEL, TAX_RATE, taxOn } from "./money";
+import {
+  formatMoney,
+  isManualDiscountPercent,
+  MANUAL_DISCOUNT_MAX_PERCENT,
+  MANUAL_DISCOUNT_MIN_PERCENT,
+  TAX_LABEL,
+  TAX_RATE,
+  taxOn,
+} from "./money";
 import {
   emptyKitchen,
   isPaymentMethod,
@@ -77,16 +85,42 @@ function aggregate(lines: OrderRequestLine[]): Map<string, number> {
  * the coupon being spent are one fact, not two separate writes that could land
  * on either side of a crash and leave the coupon marked used with no order to
  * show for it, or spent twice against two different sales.
+ *
+ * `taxExempt` and `discountPercent` are the cashier's own call, not customer
+ * input read off a form: no on-screen total is taken on trust from the
+ * browser, so these get the same re-check everything else does —
+ * `discountPercent` is rejected outside 10–50 rather than clamped, so a bad
+ * value fails the whole sale instead of quietly charging a different discount
+ * than the screen showed.
  */
+export type PlaceOrderOptions = {
+  /** Moves the sale onto an earlier business date — a till missed at close, entered the next morning. */
+  targetDate?: string;
+  /** A launch-offer number typed in at checkout, redeemed in the same transaction as the sale. */
+  couponPhone?: string;
+  /** Cashier turned tax off for this sale. */
+  taxExempt?: boolean;
+  /** A percentage taken off the bill, after tax and any coupon. Must be 10–50 inclusive. */
+  discountPercent?: number;
+};
+
 export async function placeOrder(
   requestLines: OrderRequestLine[],
   method: PaymentMethod,
   cashier: Cashier,
-  targetDate?: string,
-  couponPhone?: string,
+  options: PlaceOrderOptions = {},
 ): Promise<PlaceOrderResult> {
+  const { targetDate, couponPhone, taxExempt = false, discountPercent } = options;
+
   if (!isPaymentMethod(method)) {
     return { ok: false, error: "Unrecognised payment method." };
+  }
+
+  if (discountPercent !== undefined && !isManualDiscountPercent(discountPercent)) {
+    return {
+      ok: false,
+      error: `Discount must be between ${MANUAL_DISCOUNT_MIN_PERCENT}% and ${MANUAL_DISCOUNT_MAX_PERCENT}%.`,
+    };
   }
 
   const wanted = aggregate(requestLines);
@@ -220,8 +254,14 @@ export async function placeOrder(
         discount = { amount: check.discountAmount, couponPhone: couponRef.id };
       }
 
-      const tax = taxOn(subtotal);
-      const total = Math.max(0, subtotal + tax - (discount?.amount ?? 0));
+      const tax = taxExempt ? 0 : taxOn(subtotal);
+      const afterCoupon = Math.max(0, subtotal + tax - (discount?.amount ?? 0));
+
+      const manualDiscount =
+        discountPercent === undefined
+          ? null
+          : { percent: discountPercent, amount: Math.round((afterCoupon * discountPercent) / 100) };
+      const total = Math.max(0, afterCoupon - (manualDiscount?.amount ?? 0));
 
       // Anything other than a whole number here — a missing doc on the day's
       // first sale, or a hand-edit in the console — restarts the day at 1
@@ -243,7 +283,9 @@ export async function placeOrder(
         tax,
         taxRate: TAX_RATE,
         taxLabel: TAX_LABEL,
+        taxExempt,
         discount,
+        manualDiscount,
         total,
         method,
         cashier,
@@ -270,7 +312,9 @@ export async function placeOrder(
         tax,
         taxRate: TAX_RATE,
         taxLabel: TAX_LABEL,
+        taxExempt,
         discount,
+        manualDiscount,
         total,
         method,
         cashier,
@@ -354,6 +398,19 @@ function readDiscount(
   return { amount, couponPhone };
 }
 
+function readManualDiscount(
+  data: FirebaseFirestore.DocumentData,
+): { percent: number; amount: number } | null {
+  const manual = data.manualDiscount;
+  if (!manual || typeof manual !== "object") return null;
+
+  const percent = manual.percent;
+  const amount = manual.amount;
+  if (typeof percent !== "number" || typeof amount !== "number") return null;
+
+  return { percent, amount };
+}
+
 function readOrder(doc: DocumentSnapshot): Order | null {
   const data = doc.data();
   if (!data) return null;
@@ -373,7 +430,9 @@ function readOrder(doc: DocumentSnapshot): Order | null {
     tax: Number(data.tax) || 0,
     taxRate: typeof data.taxRate === "number" ? data.taxRate : TAX_RATE,
     taxLabel: typeof data.taxLabel === "string" ? data.taxLabel : TAX_LABEL,
+    taxExempt: data.taxExempt === true,
     discount: readDiscount(data),
+    manualDiscount: readManualDiscount(data),
     total: Number(data.total) || 0,
     method: isPaymentMethod(data.method) ? data.method : "Cash",
     cashier: {

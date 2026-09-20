@@ -15,6 +15,24 @@ export function taxOn(subtotal: number): number {
   return Math.round(subtotal * TAX_RATE);
 }
 
+/**
+ * The manual discount's range — a cashier's judgment call (a regular, a
+ * complaint, a manager override), not a promotion with its own terms. Bounded
+ * so it stays a discretionary discount rather than a way to ring up close to
+ * free: 10% is worth a slider over just typing a number, and 50% is as far as
+ * a cashier goes without it needing a second sign-off the till doesn't have.
+ */
+export const MANUAL_DISCOUNT_MIN_PERCENT = 10;
+export const MANUAL_DISCOUNT_MAX_PERCENT = 50;
+
+export function isManualDiscountPercent(value: number): boolean {
+  return (
+    Number.isInteger(value) &&
+    value >= MANUAL_DISCOUNT_MIN_PERCENT &&
+    value <= MANUAL_DISCOUNT_MAX_PERCENT
+  );
+}
+
 /** Indian digit grouping: 12,34,567 — three digits, then pairs. */
 function groupRupees(digits: string): string {
   if (digits.length <= 3) return digits;
