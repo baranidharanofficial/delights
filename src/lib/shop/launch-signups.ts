@@ -8,6 +8,7 @@ import { formatIstTime } from "./dates";
 import {
   FLAT_DISCOUNT_AMOUNT,
   FLAT_DISCOUNT_MIN_ORDER,
+  FLAT_DISCOUNT_SIGNUPS,
   LAUNCH_DISCOUNT_PERCENT,
   MAX_SIGNUPS,
   TOTAL_SIGNUPS,
@@ -218,6 +219,48 @@ export async function claimLaunchOffer(input: string): Promise<ClaimResult> {
 
     return { ok: true, code, phone, returning: false, offer };
   });
+}
+
+export type LaunchAvailability = {
+  milkshakesClaimed: number;
+  milkshakesRemaining: number;
+  milkshakeTierFull: boolean;
+  couponsClaimed: number;
+  couponsRemaining: number;
+  soldOut: boolean;
+};
+
+/**
+ * How much of each tier is left, for the public page.
+ *
+ * The page uses this to keep the coupon tier unmentioned until the milkshake
+ * tier is actually full, and to count the milkshakes remaining down as they're
+ * claimed — both of which need a real number, not the fixed constants the page
+ * used to print. One `.count()` aggregation, the same read `claimLaunchOffer`
+ * already does outside its transaction, so it costs nothing new per claim and
+ * is cheap enough for a page that revalidates every few seconds rather than
+ * reading Firestore on every single visit.
+ */
+export async function getLaunchAvailability(): Promise<LaunchAvailability> {
+  const total = (
+    await getDb().collection(COLLECTIONS.launchSignups).count().get()
+  ).data().count;
+
+  const milkshakesClaimed = Math.min(total, MAX_SIGNUPS);
+  const milkshakeTierFull = total >= MAX_SIGNUPS;
+  const couponsClaimed = Math.min(
+    Math.max(0, total - MAX_SIGNUPS),
+    FLAT_DISCOUNT_SIGNUPS,
+  );
+
+  return {
+    milkshakesClaimed,
+    milkshakesRemaining: MAX_SIGNUPS - milkshakesClaimed,
+    milkshakeTierFull,
+    couponsClaimed,
+    couponsRemaining: FLAT_DISCOUNT_SIGNUPS - couponsClaimed,
+    soldOut: total >= TOTAL_SIGNUPS,
+  };
 }
 
 /** Whoever was signed in at the till when a code was handed over. */

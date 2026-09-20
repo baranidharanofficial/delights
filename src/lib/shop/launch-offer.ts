@@ -75,9 +75,6 @@ export const FLAT_DISCOUNT_OFFER_LABEL = "₹50 off orders above ₹200";
 /** `₹50 off ₹200+` — the same offer, for spots too tight for the long form. */
 export const FLAT_DISCOUNT_SHORT_LABEL = "₹50 off ₹200+";
 
-/** `the 150 after that` — the second tier's cap, as the page states it. */
-export const FLAT_DISCOUNT_CAP_LABEL = `the ${FLAT_DISCOUNT_SIGNUPS} after that`;
-
 /**
  * Which tier a signup landed in, and the terms that come with it.
  *

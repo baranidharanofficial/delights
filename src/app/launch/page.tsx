@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Image from "next/image";
 
 import {
-  FLAT_DISCOUNT_CAP_LABEL,
   FLAT_DISCOUNT_OFFER_LABEL,
   FLAT_DISCOUNT_SHORT_LABEL,
   FLAT_DISCOUNT_SIGNUPS,
@@ -11,33 +10,27 @@ import {
   MAX_SIGNUPS,
   TOTAL_SIGNUPS,
 } from "@/lib/shop/launch-offer";
+import { getLaunchAvailability } from "@/lib/shop/launch-signups";
 
 import ClaimForm from "./claim-form";
 
 export const metadata: Metadata = {
   title: `Launch day — ${LAUNCH_OFFER_LABEL}`,
-  description: `Leave your number and get a code for ${LAUNCH_OFFER_LABEL} or ${FLAT_DISCOUNT_OFFER_LABEL} on our launch day. Open to ${TOTAL_SIGNUPS} numbers only.`,
+  description: `Leave your number and get a code for ${LAUNCH_OFFER_LABEL} on our launch day. Open to ${TOTAL_SIGNUPS} numbers total.`,
 };
 
 /**
- * Static, deliberately.
+ * Live, on a short cache, rather than fully static.
  *
- * Nothing here is read from Firestore — the page is copy plus a form, and the
- * only trip to the server is the claim itself. That keeps the page instant
- * under whatever burst of traffic the launch announcement brings, which is the
- * one moment it has to hold up.
+ * The coupon tier is never named until the milkshake tier is actually full,
+ * and "48 free left" has to count down as people claim — neither is possible
+ * from fixed copy. `revalidate` keeps the one Firestore read this needs off
+ * the hot path of every request during a launch-day burst: Next serves the
+ * cached page for this long before re-fetching, so the number on screen can
+ * be a few seconds stale. That is the same trade `claimLaunchOffer` already
+ * makes with its own capacity check, just visible here instead of silent.
  */
-
-/** The three lines under the form: what happens, in the order it happens. */
-const STEPS = [
-  { icon: "📱", title: "Leave your number", body: "One field. No app, no signup, no spam." },
-  { icon: "🎟️", title: "Get your code", body: "Six characters, shown straight away on this page." },
-  {
-    icon: "🥤",
-    title: "Show it at the counter",
-    body: `A free milkshake, or ${FLAT_DISCOUNT_SHORT_LABEL} — whichever you landed.`,
-  },
-];
+export const revalidate = 20;
 
 /** A few milkshakes drifting behind the copy — decorative, so screen readers skip them entirely. */
 const FLOATING_SHAKES = [
@@ -47,7 +40,28 @@ const FLOATING_SHAKES = [
   { emoji: "🥤", className: "right-[10%] bottom-[12%] text-3xl", delay: "1.6s" },
 ];
 
-export default function LaunchPage() {
+export default async function LaunchPage() {
+  const { milkshakesRemaining, milkshakeTierFull, couponsRemaining, soldOut } =
+    await getLaunchAvailability();
+
+  const badgeText = soldOut
+    ? "All launch spots are claimed"
+    : milkshakeTierFull
+      ? `${couponsRemaining} left at ${FLAT_DISCOUNT_SHORT_LABEL}`
+      : `${milkshakesRemaining} free milkshake${milkshakesRemaining === 1 ? "" : "s"} left`;
+
+  const steps = [
+    { icon: "📱", title: "Leave your number", body: "One field. No app, no signup, no spam." },
+    { icon: "🎟️", title: "Get your code", body: "Six characters, shown straight away on this page." },
+    {
+      icon: "🥤",
+      title: "Show it at the counter",
+      body: milkshakeTierFull
+        ? `${FLAT_DISCOUNT_SHORT_LABEL}, on launch day.`
+        : "Any milkshake on the menu, free, on launch day.",
+    },
+  ];
+
   return (
     <main className="relative flex flex-1 flex-col items-center overflow-hidden px-6 py-16">
       {/* Same ambient treatment as the home page — this is the page the
@@ -90,7 +104,7 @@ export default function LaunchPage() {
         >
           <span className="badge-pulse h-2 w-2 rounded-full bg-accent-strong" aria-hidden />
           <span className="text-xs font-semibold tracking-wide text-accent-strong">
-            {MAX_SIGNUPS} free, then {FLAT_DISCOUNT_SIGNUPS} at {FLAT_DISCOUNT_SHORT_LABEL}
+            {badgeText}
           </span>
         </div>
 
@@ -105,17 +119,32 @@ export default function LaunchPage() {
           className="rise mt-5 text-4xl font-semibold tracking-tight text-balance sm:text-5xl"
           style={{ animationDelay: "0.4s" }}
         >
-          Your first milkshake is on us 🎉
+          {milkshakeTierFull ? "₹50 off your order, on us" : "Your first milkshake is on us"} 🎉
         </h1>
 
         <p
           className="rise mt-5 max-w-md text-base leading-7 text-muted"
           style={{ animationDelay: "0.55s" }}
         >
-          We open soon, and {LAUNCH_CAP_LABEL} get {LAUNCH_OFFER_LABEL} on
-          launch day — {FLAT_DISCOUNT_CAP_LABEL} get{" "}
-          {FLAT_DISCOUNT_OFFER_LABEL} instead. Leave your number and
-          we&apos;ll tell you which one is yours.
+          {soldOut ? (
+            <>
+              All {TOTAL_SIGNUPS} launch spots are claimed. Come by on launch
+              day anyway — we&apos;ll be making plenty.
+            </>
+          ) : milkshakeTierFull ? (
+            <>
+              We open soon, and the free milkshakes are already spoken for —
+              but {FLAT_DISCOUNT_SIGNUPS} numbers can still get{" "}
+              {FLAT_DISCOUNT_OFFER_LABEL} on launch day. Leave yours and
+              we&apos;ll hand you a coupon code.
+            </>
+          ) : (
+            <>
+              We open soon, and {LAUNCH_CAP_LABEL} get {LAUNCH_OFFER_LABEL} on
+              launch day. Leave yours and we&apos;ll hand you a code for one
+              free milkshake, any one on the menu.
+            </>
+          )}
         </p>
 
         <div className="rise mt-10 w-full" style={{ animationDelay: "0.7s" }}>
@@ -126,7 +155,7 @@ export default function LaunchPage() {
           className="rise mt-14 grid w-full gap-8 text-center sm:grid-cols-3 sm:gap-6"
           style={{ animationDelay: "0.85s" }}
         >
-          {STEPS.map((step) => (
+          {steps.map((step) => (
             <li key={step.title} className="group">
               <span
                 aria-hidden
@@ -144,10 +173,19 @@ export default function LaunchPage() {
           className="rise mt-14 max-w-md text-xs leading-5 text-muted/70"
           style={{ animationDelay: "1s" }}
         >
-          One code per number, redeemed once, on launch day, in store — open
-          to {TOTAL_SIGNUPS} numbers total. The rest of the menu is at its
-          usual price, and we&apos;ll only use your number to tell you when we
-          open.
+          {milkshakeTierFull ? (
+            <>
+              One code per number, redeemed once, on launch day, in store —{" "}
+              {couponsRemaining} coupons left.
+            </>
+          ) : (
+            <>
+              One code per number, redeemed once, on launch day, in store —
+              open to {MAX_SIGNUPS} numbers only.
+            </>
+          )}{" "}
+          The rest of the menu is at its usual price, and we&apos;ll only use
+          your number to tell you when we open.
         </p>
       </div>
     </main>
