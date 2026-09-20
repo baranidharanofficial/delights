@@ -101,6 +101,52 @@ body {
   animation: glow-pulse 5s ease-in-out infinite;
 }
 
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-4deg);
+  }
+  50% {
+    transform: translateY(-14px) rotate(4deg);
+  }
+}
+
+.float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes badge-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--glow);
+  }
+  50% {
+    box-shadow: 0 0 0 4px var(--glow);
+  }
+}
+
+.badge-pulse {
+  animation: badge-pulse 2s ease-in-out infinite;
+}
+
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.03);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.pop-in {
+  animation: pop-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .rise {
     animation: none;
@@ -108,5 +154,15 @@ body {
   }
   .glow-pulse {
     animation: none;
+  }
+  .float {
+    animation: none;
+  }
+  .badge-pulse {
+    animation: none;
+  }
+  .pop-in {
+    animation: none;
+    opacity: 1;
   }
 }

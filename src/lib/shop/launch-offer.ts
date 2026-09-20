@@ -19,9 +19,9 @@ export const LAUNCH_DISCOUNT_PERCENT = 100;
 export const LAUNCH_OFFER_LABEL = "a free milkshake";
 
 /**
- * Signups the shop will take — a hundred free milkshakes.
+ * Signups the shop will take — fifty free milkshakes.
  *
- * This is advertised now rather than a private ceiling: "the first hundred" is
+ * This is advertised now rather than a private ceiling: "the first fifty" is
  * printed on the page, so the number the page promises and the number the
  * server enforces have to be the same one. That is why it lives here and not
  * beside the write that checks it — the launch page is otherwise entirely
@@ -31,16 +31,16 @@ export const LAUNCH_OFFER_LABEL = "a free milkshake";
  * A number already on the list keeps getting its code back after the cap is
  * reached; only numbers new to the list are turned away.
  */
-export const MAX_SIGNUPS = 100;
+export const MAX_SIGNUPS = 50;
 
 /**
- * `the first 100 numbers` — the cap as the page states it.
+ * `the first 50 numbers` — the cap as the page states it.
  *
  * One interpolation rather than `{MAX_SIGNUPS} numbers` written inline in JSX,
  * because the compiler eats the space on both sides of an interpolation that
  * sits in wrapped prose: a text chunk *following* an expression loses its
  * leading space, and a chunk *preceding* one loses its trailing space if the
- * line happens to break there. Either way a customer reads "100numbers".
+ * line happens to break there. Either way a customer reads "50numbers".
  *
  * So the phrase is one expression, and the page writes an explicit `{" "}`
  * ahead of it and lets punctuation follow it directly. Keep that shape if you

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 
-import { LAUNCH_CAP_LABEL, LAUNCH_OFFER_LABEL } from "@/lib/shop/launch-offer";
+import { LAUNCH_CAP_LABEL, LAUNCH_OFFER_LABEL, MAX_SIGNUPS } from "@/lib/shop/launch-offer";
 
 import ClaimForm from "./claim-form";
 
@@ -21,12 +21,21 @@ export const metadata: Metadata = {
 
 /** The three lines under the form: what happens, in the order it happens. */
 const STEPS = [
-  { title: "Leave your number", body: "One field. No app, no signup, no spam." },
-  { title: "Get your code", body: "Six characters, shown straight away on this page." },
+  { icon: "📱", title: "Leave your number", body: "One field. No app, no signup, no spam." },
+  { icon: "🎟️", title: "Get your code", body: "Six characters, shown straight away on this page." },
   {
+    icon: "🥤",
     title: "Show it at the counter",
     body: "Any milkshake on the menu, free, on launch day.",
   },
+];
+
+/** A few milkshakes drifting behind the copy — decorative, so screen readers skip them entirely. */
+const FLOATING_SHAKES = [
+  { emoji: "🍓", className: "top-[8%] left-[10%] text-3xl", delay: "0s" },
+  { emoji: "🍫", className: "top-[18%] right-[8%] text-2xl", delay: "0.6s" },
+  { emoji: "🍌", className: "bottom-[22%] left-[6%] text-2xl", delay: "1.1s" },
+  { emoji: "🥤", className: "right-[10%] bottom-[12%] text-3xl", delay: "1.6s" },
 ];
 
 export default function LaunchPage() {
@@ -43,6 +52,17 @@ export default function LaunchPage() {
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,var(--glow),transparent_60%)]"
       />
 
+      {FLOATING_SHAKES.map((shake) => (
+        <span
+          key={shake.emoji}
+          aria-hidden
+          className={`float pointer-events-none absolute select-none opacity-70 ${shake.className}`}
+          style={{ animationDelay: shake.delay }}
+        >
+          {shake.emoji}
+        </span>
+      ))}
+
       <div className="relative flex w-full max-w-xl flex-1 flex-col items-center justify-center text-center">
         <div className="rise" style={{ animationDelay: "0.1s" }}>
           <Image
@@ -55,9 +75,19 @@ export default function LaunchPage() {
           />
         </div>
 
+        <div
+          className="rise mt-8 flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-4 py-1.5"
+          style={{ animationDelay: "0.2s" }}
+        >
+          <span className="badge-pulse h-2 w-2 rounded-full bg-accent-strong" aria-hidden />
+          <span className="text-xs font-semibold tracking-wide text-accent-strong">
+            Only {MAX_SIGNUPS} spots — first come, first served
+          </span>
+        </div>
+
         <p
-          className="rise mt-12 text-xs font-medium tracking-[0.35em] text-accent-strong uppercase"
-          style={{ animationDelay: "0.25s" }}
+          className="rise mt-6 text-xs font-medium tracking-[0.35em] text-accent-strong uppercase"
+          style={{ animationDelay: "0.3s" }}
         >
           Launch day offer
         </p>
@@ -66,7 +96,7 @@ export default function LaunchPage() {
           className="rise mt-5 text-4xl font-semibold tracking-tight text-balance sm:text-5xl"
           style={{ animationDelay: "0.4s" }}
         >
-          Your first milkshake is on us
+          Your first milkshake is on us 🎉
         </h1>
 
         <p
@@ -86,13 +116,13 @@ export default function LaunchPage() {
           className="rise mt-14 grid w-full gap-8 text-center sm:grid-cols-3 sm:gap-6"
           style={{ animationDelay: "0.85s" }}
         >
-          {STEPS.map((step, index) => (
-            <li key={step.title}>
+          {STEPS.map((step) => (
+            <li key={step.title} className="group">
               <span
                 aria-hidden
-                className="mx-auto flex h-7 w-7 items-center justify-center rounded-full border border-accent/40 text-xs text-accent-strong"
+                className="mx-auto flex h-11 w-11 items-center justify-center rounded-full border border-accent/40 bg-accent/5 text-lg transition-transform duration-300 group-hover:scale-110"
               >
-                {index + 1}
+                {step.icon}
               </span>
               <h2 className="mt-3 text-sm font-medium">{step.title}</h2>
               <p className="mt-1.5 text-xs leading-5 text-muted">{step.body}</p>

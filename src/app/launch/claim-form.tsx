@@ -31,14 +31,14 @@ function ClaimButton() {
 function Claimed({ state }: { state: Extract<ClaimState, { status: "claimed" }> }) {
   return (
     <div
-      className="mx-auto w-full max-w-md rounded-2xl border border-accent/30 bg-accent/[0.09] p-6 text-center"
+      className="pop-in mx-auto w-full max-w-md rounded-2xl border border-accent/30 bg-accent/[0.09] p-6 text-center"
       // Announced rather than silently swapped in: the form it replaces is
       // where the keyboard focus still is.
       role="status"
       aria-live="polite"
     >
       <p className="text-xs font-medium tracking-[0.25em] text-accent-strong uppercase">
-        {state.returning ? "Already yours" : "You're in"}
+        {state.returning ? "Already yours" : "You're in 🎉"}
       </p>
 
       <p className="mt-4 font-mono text-3xl font-semibold tracking-[0.2em] text-foreground">
