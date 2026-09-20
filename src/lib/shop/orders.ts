@@ -505,3 +505,42 @@ export async function getOrdersForDate(date: string): Promise<Order[]> {
     .filter((order): order is Order => order !== null)
     .sort((a, b) => b.placedAtMs - a.placedAtMs);
 }
+
+/**
+ * Every order between two business dates (inclusive), oldest first — the sales
+ * chart's raw material.
+ *
+ * `orderBy` on the same field as the range filter needs no composite index,
+ * unlike `getOrdersForDate`'s equality-plus-sort-elsewhere shape, so Firestore
+ * does the ordering here rather than the caller.
+ */
+export async function getOrdersBetween(
+  startDate: string,
+  endDate: string,
+): Promise<Order[]> {
+  const snapshot = await getDb()
+    .collection(COLLECTIONS.orders)
+    .where("businessDate", ">=", startDate)
+    .where("businessDate", "<=", endDate)
+    .orderBy("businessDate", "asc")
+    .get();
+
+  return snapshot.docs
+    .map(readOrder)
+    .filter((order): order is Order => order !== null);
+}
+
+/**
+ * The business date of the shop's very first order, or `null` if it has never
+ * sold anything. Backs the "lifetime" sales range, which has no fixed start.
+ */
+export async function getFirstOrderDate(): Promise<string | null> {
+  const snapshot = await getDb()
+    .collection(COLLECTIONS.orders)
+    .orderBy("businessDate", "asc")
+    .limit(1)
+    .get();
+
+  const date = snapshot.docs[0]?.data().businessDate;
+  return typeof date === "string" ? date : null;
+}

@@ -4,8 +4,25 @@ import { revalidatePath } from "next/cache";
 
 import { requireSection } from "@/lib/auth/session";
 import { deleteOrder, voidOrder } from "@/lib/shop/orders";
+import { getSalesSeries } from "@/lib/shop/reports";
+import { isSalesRange, type SalesSeries } from "@/lib/shop/sales-range";
 
 import { EMPTY_FORM_STATE, type FormState } from "../form-state";
+
+/**
+ * Fetches one range's worth of the sales chart.
+ *
+ * A Server Action rather than a route handler because the chart is a client
+ * component (it needs the range tabs and the hover layer) sitting inside a
+ * screen that otherwise reads Firestore straight from the Server Component —
+ * this is the one piece the client has to ask for after the fact, when the
+ * cashier flips between "7 days" and "1 year".
+ */
+export async function loadSalesSeries(range: string): Promise<SalesSeries> {
+  await requireSection("/pos/reports");
+
+  return getSalesSeries(isSalesRange(range) ? range : "7d");
+}
 
 export async function voidSale(
   _previous: FormState,

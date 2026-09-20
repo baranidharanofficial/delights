@@ -8,10 +8,11 @@ import {
   shiftBusinessDate,
 } from "@/lib/shop/dates";
 import { formatMoney } from "@/lib/shop/money";
-import { getDailyReport } from "@/lib/shop/reports";
+import { getDailyReport, getSalesSeries } from "@/lib/shop/reports";
 import { PAYMENT_METHODS, type DailyReport, type Order } from "@/lib/shop/types";
 
 import OrderList from "./order-list";
+import SalesChart from "./sales-chart";
 
 import PosShell from "../shell";
 
@@ -28,13 +29,21 @@ export default async function ReportsPage({
   const date = isBusinessDate(requested) ? requested : businessDate();
   const today = businessDate();
 
-  const { report, orders } = await getDailyReport(date);
+  const [{ report, orders }, salesSeries] = await Promise.all([
+    getDailyReport(date),
+    // "7 days" is the chart's opening range — fetched here so it renders with
+    // the page rather than popping in after a client round trip. Every other
+    // range is a click away, handled by the chart itself.
+    getSalesSeries("7d"),
+  ]);
 
   return (
     <PosShell user={user} current="/pos/reports" subtitle="Reports">
       <div className="flex flex-col gap-6 px-4 pb-8 sm:px-6">
         <DateNav date={date} today={today} />
         <Totals report={report} />
+
+        <SalesChart initial={salesSeries} />
 
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <TopItems report={report} />
