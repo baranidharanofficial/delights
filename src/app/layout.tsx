@@ -15,6 +15,16 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Delights",
   description: "Milkshakes, snacks and everything.",
+  /**
+   * iOS ignores the web manifest for "Add to Home Screen" and reads this
+   * block instead — without it, a pinned icon reopens inside Safari's chrome
+   * rather than as its own standalone app.
+   */
+  appleWebApp: {
+    capable: true,
+    title: "Delights",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 /**
